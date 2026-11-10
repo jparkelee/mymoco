@@ -21,7 +21,18 @@ const L = {
     projectsShort: { '': 'Nothing planned', 'Deck or porch': 'A deck or porch', 'Addition': 'An addition', 'Remodel': 'A remodel', 'Repair': 'A repair', 'Shed or garage': 'A shed or garage', 'Pool': 'A pool', 'Accessory apartment': 'An accessory apartment', 'New home': 'A new home' },
     waitsShort: { '': 'Nothing right now', tree: 'A county tree removal', 'Pothole': 'A pothole fix', 'Streetlight out': 'A streetlight repair', 'Sidewalk repair': 'A sidewalk repair', 'Storm drain clog': 'A storm drain cleanout', 'Tree down or hazard': 'A fallen-tree cleanup', 'Abandoned vehicle': 'An abandoned car removed' },
     change_sit: 'Change your situation',
-    f_address: 'My address (optional)', addr_ph: 'For example: 8400 Georgia Ave, Silver Spring 20910', f_area_auto: 'Area',
+    f_address: 'Your address', addr_ph: 'Example: 8400 Georgia Ave, 20910', f_area_auto: 'Area',
+    nav_brief: 'Your briefing', nav_alerts: 'Changes near you', nav_permits: 'Permit wait times', nav_fix: 'How fast fixes happen',
+    hero_title: 'What’s happening on your street',
+    hero_sub: 'Enter your address to see county requests, permit waits, tax and rent rules, and changes nearby, explained in plain English. It’s free, and your address never leaves this device.',
+    addr_go: 'Show my briefing',
+    how1_t: 'Enter your address', how1_d: 'Or just pick your area. We use it to find your street and neighborhood.',
+    how2_t: 'Tell us what you’re dealing with', how2_d: 'A tree removal, a deck permit, a pothole. This step is optional.',
+    how3_t: 'Get your briefing', how3_d: 'What to expect, how long it takes, and exactly what to do next.',
+    tailor_title: 'Make it fit you', tailor_hint: 'Pick what applies. Your briefing updates right away.', f_role_q: 'I…',
+    tools_title: 'More tools', tool_alerts_d: 'Every new permit, demolition, inspection and license request near you.', tool_permits_d: 'How long building permits really take, by project type and area.', tool_fix_d: 'How fast the county closes 311 requests in each part of the county.', tool_open: 'Open',
+    feedback_link: 'Something wrong or missing? Tell us', top_link: 'Change address',
+    cta_tree: 'Open the MC311 tree request', cta_req: 'Check my request on MC311', cta_check: 'Read the county’s permit guide', cta_permit: 'See permit wait times', cta_tax: 'Ask MC311 about tax credits', cta_rent: 'Contact MC311', cta_near: 'See every change near me', cta_fix: 'Compare fix times', cta_biz: 'See inspections near me',
     addr_ok: (area, zip, street) => `Matched to ${area}${zip ? ` (${zip})` : ''}${street ? `, near ${street}` : ''}.`,
     addr_none: 'We couldn’t find a ZIP code or town in that address. Pick your area below.',
     addr_private: 'Your address stays on this device and is never sent anywhere.',
@@ -61,7 +72,7 @@ const L = {
     more_sum: (n) => `${n} more for you`,
     live: (n) => `Your briefing updated: ${n} ${n === 1 ? 'item' : 'items'}.`,
     print: 'Print or save as PDF', reset: 'Start over',
-    saved_note: 'Your answers are saved only in this browser. Nothing is sent anywhere unless you allow Claude to read a description.',
+    saved_note: 'Your answers and address are saved only in this browser. Nothing is sent anywhere.',
     go_deeper: 'Go deeper:',
     why: 'Why you’re seeing this: ', details: 'Details', source: 'Source: ',
     useful: 'Was this useful?', yes: 'Yes', no: 'No', thanks: 'Thanks for letting us know.',
@@ -148,7 +159,18 @@ const L = {
     projectsShort: { '': 'Ninguna por ahora', 'Deck or porch': 'Una terraza o porche', 'Addition': 'Una ampliación', 'Remodel': 'Una remodelación', 'Repair': 'Una reparación', 'Shed or garage': 'Un cobertizo o garaje', 'Pool': 'Una piscina', 'Accessory apartment': 'Un apartamento accesorio', 'New home': 'Una casa nueva' },
     waitsShort: { '': 'Nada por ahora', tree: 'Quitar un árbol del condado', 'Pothole': 'Reparar un bache', 'Streetlight out': 'Reparar un farol', 'Sidewalk repair': 'Reparar una acera', 'Storm drain clog': 'Limpiar un desagüe', 'Tree down or hazard': 'Retirar un árbol caído', 'Abandoned vehicle': 'Retirar un carro abandonado' },
     change_sit: 'Cambiar su situación',
-    f_address: 'Mi dirección (opcional)', addr_ph: 'Por ejemplo: 8400 Georgia Ave, Silver Spring 20910', f_area_auto: 'Zona',
+    f_address: 'Su dirección', addr_ph: 'Ejemplo: 8400 Georgia Ave, 20910', f_area_auto: 'Zona',
+    nav_brief: 'Su resumen', nav_alerts: 'Cambios cerca', nav_permits: 'Tiempos de permisos', nav_fix: 'Rapidez de reparaciones',
+    hero_title: 'Qué está pasando en su calle',
+    hero_sub: 'Escriba su dirección para ver solicitudes al condado, tiempos de permisos, reglas de impuestos y alquiler, y cambios cercanos, explicados en palabras sencillas. Es gratis, y su dirección nunca sale de este dispositivo.',
+    addr_go: 'Ver mi resumen',
+    how1_t: 'Escriba su dirección', how1_d: 'O simplemente elija su zona. La usamos para encontrar su calle y su vecindario.',
+    how2_t: 'Cuéntenos su situación', how2_d: 'Quitar un árbol, un permiso para una terraza, un bache. Este paso es opcional.',
+    how3_t: 'Reciba su resumen', how3_d: 'Qué esperar, cuánto tarda y exactamente qué hacer después.',
+    tailor_title: 'Ajústelo a usted', tailor_hint: 'Elija lo que le aplica. Su resumen se actualiza enseguida.', f_role_q: 'Yo…',
+    tools_title: 'Más herramientas', tool_alerts_d: 'Cada nuevo permiso, demolición, inspección y solicitud de licencia cerca de usted.', tool_permits_d: 'Cuánto tardan de verdad los permisos de construcción, por tipo de obra y zona.', tool_fix_d: 'Qué tan rápido cierra el condado las solicitudes al 311 en cada zona.', tool_open: 'Abrir',
+    feedback_link: '¿Algo está mal o falta? Díganos', top_link: 'Cambiar dirección',
+    cta_tree: 'Abrir la solicitud de árbol en MC311', cta_req: 'Revisar mi solicitud en MC311', cta_check: 'Leer la guía de permisos del condado', cta_permit: 'Ver tiempos de permisos', cta_tax: 'Preguntar a MC311 por créditos', cta_rent: 'Contactar a MC311', cta_near: 'Ver todos los cambios cerca', cta_fix: 'Comparar tiempos de reparación', cta_biz: 'Ver inspecciones cerca',
     addr_ok: (area, zip, street) => `Encontramos ${area}${zip ? ` (${zip})` : ''}${street ? `, cerca de ${street}` : ''}.`,
     addr_none: 'No encontramos un código postal ni un pueblo en esa dirección. Elija su zona abajo.',
     addr_private: 'Su dirección se queda en este dispositivo y nunca se envía.',
@@ -188,7 +210,7 @@ const L = {
     more_sum: (n) => `${n} más para usted`,
     live: (n) => `Su resumen se actualizó: ${n} ${n === 1 ? 'elemento' : 'elementos'}.`,
     print: 'Imprimir o guardar como PDF', reset: 'Empezar de nuevo',
-    saved_note: 'Sus respuestas se guardan solo en este navegador. No se envía nada a menos que le dé permiso a Claude para leer una descripción.',
+    saved_note: 'Sus respuestas y su dirección se guardan solo en este navegador. No se envía nada.',
     go_deeper: 'Más detalles:',
     why: 'Por qué ve esto: ', details: 'Detalles', source: 'Fuente: ',
     useful: '¿Le fue útil?', yes: 'Sí', no: 'No', thanks: 'Gracias por avisarnos.',
@@ -348,11 +370,21 @@ function fillSelect(sel, entries, value) {
   sel.replaceChildren(...entries.map(([v, label]) => new Option(label, v)));
   sel.value = value;
 }
+function drawRoleButtons() {
+  const box = $('role-btns');
+  box.replaceChildren(...Object.entries(T().roles).map(([v, label]) => {
+    const b = el('button', 'choice', label); b.type = 'button'; b.dataset.role = v;
+    b.setAttribute('aria-pressed', String($('q-role').value === v));
+    b.addEventListener('click', () => { $('q-role').value = v; render(true); });
+    return b;
+  }));
+}
 function applyLanguage() {
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-i18n]').forEach((node) => { const v = T()[node.dataset.i18n]; if (typeof v === 'string') node.textContent = v; });
   $('ask-text').placeholder = T().ask_placeholder;
   $('q-address').placeholder = T().addr_ph;
+  drawRoleButtons();
   if (addr) applyAddress($('q-address').value, true);
   $('draft').hidden = lang !== 'es';
   document.querySelectorAll('.lang button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === lang)));
@@ -411,7 +443,7 @@ function feedbackRow(cardEl) {
   });
   return row;
 }
-const card = ({ kind, fig, real, answer, sub, visual, actions, why, details, source }) => {
+const card = ({ kind, fig, real, answer, sub, visual, actions, why, details, source, cta }) => {
   const c = el('article', 'item');
   c.dataset.kind = kind;
   const f = el('div', 'fig');
@@ -421,12 +453,13 @@ const card = ({ kind, fig, real, answer, sub, visual, actions, why, details, sou
   if (sub) b.append(el('p', 'sub', sub));
   if (visual) b.append(visual);
   if (actions) b.append(actions);
+  if (cta) { const a = link(cta[0], cta[1]); a.className = 'btn-cta'; b.append(a); }
   if (details) { const d = el('details'); d.append(el('summary', '', T().details), ...details); b.append(d); }
   const meta = el('p', 'meta');
   if (source) meta.append(T().source, ...source, '. ');
   else if (!real) meta.append((DATA.kind === 'county' ? T().county_note : T().sample_note) + ' ');
   if (why) meta.append(T().why + why);
-  b.append(meta, feedbackRow(c));
+  b.append(meta);
   c.append(f, b);
   return c;
 };
@@ -470,7 +503,7 @@ const addMonths = (d, m) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(
 function treeCard() {
   const x = T().tree;
   return card({
-    kind: 'tree', fig: { v: '15–18', u: T().unit_months }, real: true, answer: answerLine(x.answer),
+    kind: 'tree', cta: [LINKS.forms, T().cta_tree], fig: { v: '15–18', u: T().unit_months }, real: true, answer: answerLine(x.answer),
     visual: timeline(),
     sub: x.sub(fmtMonth().format(addMonths(TODAY, 15)), fmtMonth().format(addMonths(TODAY, 18))),
     actions: todo(x.todo, [LINKS.forms]), why: x.why, details: [el('p', '', x.detail)],
@@ -483,7 +516,7 @@ function requestCard(cat, area) {
   const slower = mine && county && mine.p50 > county.p50 * 1.15, faster = mine && county && mine.p50 < county.p50 * 0.87;
   const word = x.words[slower ? 'slower' : faster ? 'faster' : 'same'];
   return card({
-    kind: 'request', fig: { v: n(r.p50), u: T().unit_days }, real: false,
+    kind: 'request', cta: [LINKS.mc311, T().cta_req], fig: { v: n(r.p50), u: T().unit_days }, real: false,
     answer: answerLine(x.answer(label, mine ? x.inArea(area) : x.county), T().days(n(r.p50)), slower),
     sub: mine && county ? x.compare(word, n(county.p50), n(r.p90)) : x.only90(n(r.p90)),
     visual: mine && county ? compareBars([{ label: area, v: mine.p50 }, { label: x.countyLabel, v: county.p50, county: true }]) : null,
@@ -497,7 +530,7 @@ function permitCard(type, area) {
   if (!r) return null;
   const name = T().projectNames[type];
   return card({
-    kind: 'permit', fig: { v: n(r.p50), u: T().unit_days }, real: false,
+    kind: 'permit', cta: [LINKS.permit, T().cta_permit], fig: { v: n(r.p50), u: T().unit_days }, real: false,
     answer: answerLine(x.answer(name, mine ? T().req.inArea(area) : T().req.county), T().days(n(r.p50))),
     sub: x.sub(Math.round(r.same_day * 100)), visual: rangeBar(r.p25, r.p50, r.p90),
     actions: todo(x.todo(Math.ceil(r.p90 / 7))), why: x.why(name),
@@ -513,7 +546,7 @@ function permitCheckCard(project) {
   for (const id of permit) { const [label, note] = PERMIT_ITEMS[id][lang]; const li = el('li'), body = el('div'); body.append(el('strong', '', label)); if (note) body.append(el('small', '', note)); li.append(el('span', 'verdict is-yes', x.yes), body); list.append(li); }
   for (const id of none) { const li = el('li'), body = el('div'); body.append(el('strong', '', NO_PERMIT_ITEMS[id][lang])); li.append(el('span', 'verdict is-no', x.no), body); list.append(li); }
   return card({
-    kind: 'check', fig: { v: n(permit.length), u: T().fig_permits(n(permit.length)) }, real: true, answer: answerLine(permit.length ? x.answerSome(permit.length === 1) : x.answerNone),
+    kind: 'check', cta: [LINKS.permitGuide, T().cta_check], fig: { v: n(permit.length), u: T().fig_permits(n(permit.length)) }, real: true, answer: answerLine(permit.length ? x.answerSome(permit.length === 1) : x.answerNone),
     visual: list, actions: todo(x.todo),
     why: matched ? x.whyText : x.whyProject(T().projects[project]),
     details: [el('p', '', x.detail)], source: [link(LINKS.permitGuide, x.source[0]), x.source[1]],
@@ -522,13 +555,13 @@ function permitCheckCard(project) {
 function roleCard(role, area) {
   if (role === 'homeowner' || role === 'renter') {
     const x = role === 'homeowner' ? T().tax : T().rent;
-    return card({ kind: role === 'homeowner' ? 'tax' : 'rent', fig: role === 'homeowner' ? { v: '$692', u: T().fig_credit } : { v: '5.2%', u: T().fig_cap }, real: true, answer: answerLine(x.answer), sub: x.sub, actions: todo(x.todo), why: x.why,
+    return card({ kind: role === 'homeowner' ? 'tax' : 'rent', cta: [LINKS.mc311, role === 'homeowner' ? T().cta_tax : T().cta_rent], fig: role === 'homeowner' ? { v: '$692', u: T().fig_credit } : { v: '5.2%', u: T().fig_cap }, real: true, answer: answerLine(x.answer), sub: x.sub, actions: todo(x.todo), why: x.why,
       source: role === 'homeowner' ? [link(LINKS.tax, x.source[0]), x.source[1]] : [x.source[0]] });
   }
   const x = T().biz;
   const recent = DATA.events.filter((e) => e.area === area && (e.type === 'Restaurant inspection' || e.type === 'Liquor license') && new Date(e.date + 'T00:00:00Z') > new Date(AS_OF.getTime() - 30 * 864e5));
   const failed = recent.filter((e) => e.level === 'bad').length;
-  return card({ kind: 'biz', fig: { v: n(recent.length), u: T().fig_inspections }, real: false, answer: answerLine(x.answer(area, n(recent.length))), sub: failed ? x.failed(n(failed)) : x.none, actions: todo(x.todo), why: x.why });
+  return card({ kind: 'biz', cta: [LINKS.alerts, T().cta_biz], fig: { v: n(recent.length), u: T().fig_inspections }, real: false, answer: answerLine(x.answer(area, n(recent.length))), sub: failed ? x.failed(n(failed)) : x.none, actions: todo(x.todo), why: x.why });
 }
 function nearCard(area) {
   const x = T().near;
@@ -540,19 +573,19 @@ function nearCard(area) {
     const list = el('ul', 'items');
     for (const e of (onStreet.near.length ? onStreet.near.slice(0, 3) : top)) { const li = el('li', e.level === 'bad' ? 'is-bad' : ''); li.append(eventTitle(e), el('small', '', `${blockText(e.block)}, ${fmtDay().format(new Date(e.date + 'T00:00:00Z'))}`)); list.append(li); }
     const cnt = n(onStreet.near.length ? onStreet.near.length : week.length);
-    return card({ kind: 'near', fig: { v: cnt, u: T().fig_changes(cnt) }, real: false,
+    return card({ kind: 'near', cta: [LINKS.alerts, T().cta_near], fig: { v: cnt, u: T().fig_changes(cnt) }, real: false,
       answer: onStreet.near.length ? answerLine(T().near_street_answer(n(onStreet.near.length), onStreet.label)) : answerLine(x.answer(n(week.length), area)),
       sub: onStreet.near.length ? T().near_street_sub(n(week.length), area) : T().near_street_none(onStreet.label),
       visual: list, actions: todo(x.todo), why: x.why(area) });
   }
   const list = el('ul', 'items');
   for (const e of top) { const li = el('li', e.level === 'bad' ? 'is-bad' : ''); li.append(eventTitle(e), el('small', '', `${blockText(e.block)}, ${fmtDay().format(new Date(e.date + 'T00:00:00Z'))}`)); list.append(li); }
-  return card({ kind: 'near', fig: { v: n(week.length), u: T().fig_changes(n(week.length)) }, real: false, answer: answerLine(x.answer(n(week.length), area)), visual: top.length ? list : null, actions: todo(x.todo), why: x.why(area) });
+  return card({ kind: 'near', cta: [LINKS.alerts, T().cta_near], fig: { v: n(week.length), u: T().fig_changes(n(week.length)) }, real: false, answer: answerLine(x.answer(n(week.length), area)), visual: top.length ? list : null, actions: todo(x.todo), why: x.why(area) });
 }
 function fixCard(area) {
   const x = T().fix, mine = DATA.requests[`Pothole|${area}`], county = DATA.requests['Pothole|All'];
   if (!mine || !county) return null;
-  return card({ kind: 'fix', fig: { v: n(mine.p50), u: T().unit_days }, real: false, answer: answerLine(x.answer(area, T().days(n(county.p50))), T().days(n(mine.p50)), mine.p50 > county.p50 * 1.15),
+  return card({ kind: 'fix', cta: [LINKS.fair, T().cta_fix], fig: { v: n(mine.p50), u: T().unit_days }, real: false, answer: answerLine(x.answer(area, T().days(n(county.p50))), T().days(n(mine.p50)), mine.p50 > county.p50 * 1.15),
     visual: compareBars([{ label: area, v: mine.p50 }, { label: T().req.countyLabel, v: county.p50, county: true }]), actions: todo(x.todo), why: x.why(area) });
 }
 
@@ -713,6 +746,8 @@ function render(animate) {
   $('live').textContent = T().live(list.length);
   renderMasthead(a);
   renderEmail(a, list);
+  document.querySelectorAll('#role-btns .choice').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.role === a.role)));
+  $('how').hidden = Boolean(addr && addr.area);
 }
 
 const answers = Object.assign({ area: 'Silver Spring', role: 'homeowner', project: '', wait: 'tree', lang: (navigator.language || '').startsWith('es') ? 'es' : 'en' }, load() || {});
@@ -725,7 +760,14 @@ let addrTimer = null;
 $('q-address').addEventListener('input', () => { clearTimeout(addrTimer); addrTimer = setTimeout(() => applyAddress($('q-address').value), 450); });
 $('q-area').addEventListener('change', () => { if (addr && addr.area && addr.area !== $('q-area').value) { addr = null; $('addr-status').textContent = ''; } });
 $('situation').addEventListener('change', (ev) => { if (ev.target.id !== 'q-address') render(true); });
-$('jump-sit').addEventListener('click', () => { $('situation').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); $('q-address').focus({ preventScroll: true }); });
+const smooth = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+$('addr-form').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  clearTimeout(addrTimer);
+  applyAddress($('q-address').value);
+  if (addr && addr.area) $('briefing').scrollIntoView({ behavior: smooth(), block: 'start' });
+});
+$('top-link').addEventListener('click', () => { window.scrollTo({ top: 0, behavior: smooth() }); $('q-address').focus({ preventScroll: true }); });
 document.querySelectorAll('.lang button').forEach((b) => b.addEventListener('click', () => { lang = b.dataset.lang; applyLanguage(); render(false); }));
 $('ask-go').addEventListener('click', async () => {
   const text = $('ask-text').value.trim();
