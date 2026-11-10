@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Neighborhood Alerts · Montgomery County</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3F5F7; --panel: #FFFFFF; --ink: #0E2236; --muted: #586675; --line: #DCE3E9; --track: #E7ECF0;
+    --accent: #0F766E; --accent-soft: #E1F1EE; --bad: #B42318; --bad-soft: #FDECEA;
+    --k: #C0410C; --ks: #FCEAE0; --notice: #985A00; --notice-soft: #FBF0DC;
+    --mast: #0E2236; --mast-ink: #F4F7FA; --mast-muted: #A9B8C8;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --fs-xs: 0.78rem; --fs-sm: 0.875rem; --fs-md: 1rem; --fs-lg: 1.125rem; --fs-xl: clamp(1.25rem, 3vw, 1.5rem); --fs-hero: clamp(2.2rem, 7vw, 3.4rem);
+    --radius: 0.9rem; --radius-sm: 0.6rem;
+    color-scheme: light; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0B131C; --panel: #131D29; --ink: #E7EDF3; --muted: #9AA8B6; --line: #253344; --track: #223040;
+    --accent: #5EC9B8; --accent-soft: #12302C; --bad: #FF8A7A; --bad-soft: #3A1D1D; --k: #FF9C6B; --ks: #3A2013; --notice: #F1B35B; --notice-soft: #33260F;
+    --mast: #070E16; --mast-ink: #EEF3F8; --mast-muted: #93A4B6; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg: #0B131C; --panel: #131D29; --ink: #E7EDF3; --muted: #9AA8B6; --line: #253344; --track: #223040;
+    --accent: #5EC9B8; --accent-soft: #12302C; --bad: #FF8A7A; --bad-soft: #3A1D1D; --k: #FF9C6B; --ks: #3A2013; --notice: #F1B35B; --notice-soft: #33260F;
+    --mast: #070E16; --mast-ink: #EEF3F8; --mast-muted: #93A4B6; color-scheme: dark; }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: var(--fs-md); line-height: 1.55; }
+  p, h1, h2, h3, ul { margin: 0; }
+  button, select, input { font: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  .masthead { background-color: var(--mast); color: var(--mast-ink);
+    background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(28deg, transparent 49.6%, rgba(255,255,255,0.07) 49.8%, rgba(255,255,255,0.07) 50.2%, transparent 50.4%);
+    background-size: 46px 46px, 46px 46px, 520px 520px; }
+  .mast-inner { max-width: 64rem; margin: 0 auto; padding: 1.1rem 1.25rem 1.8rem; display: grid; gap: 0.4rem; }
+  .brand { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 800; font-size: var(--fs-lg); letter-spacing: -0.01em; margin-bottom: 1.1rem; }
+  .brand svg { width: 1.3rem; height: 1.3rem; fill: none; stroke: #5EC9B8; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .masthead h1 { font-size: var(--fs-hero); font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; }
+  .lede { color: var(--mast-muted); max-width: 60ch; }
+  .sample { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; font-size: var(--fs-xs); font-weight: 600; color: var(--mast-muted); border: 1px dashed rgba(255,255,255,0.3); border-radius: 999px; padding: 0.15rem 0.65rem; justify-self: start; }
+  .wrap { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; display: grid; gap: 1.25rem; }
+  .controls { display: grid; gap: 0.9rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); align-items: end; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.1rem; }
+  label.field, .field { display: grid; gap: 0.3rem; font-size: var(--fs-xs); font-weight: 700; color: var(--muted); }
+  select, input[type="search"] { font-size: var(--fs-md); font-weight: 600; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.55rem 0.75rem; min-height: 48px; width: 100%; }
+  select { appearance: none; -webkit-appearance: none; padding-right: 2.2rem; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23586675' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.8rem center; }
+  select:hover, input[type="search"]:hover { border-color: var(--accent); }
+  input[type="search"] { font-weight: 500; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg); }
+  .seg button { font-size: var(--fs-sm); font-weight: 700; border: 0; background: transparent; color: var(--ink); padding: 0.55rem 0.9rem; min-height: 48px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+  .types { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .types button { font-size: var(--fs-sm); font-weight: 600; border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 0.35rem 0.85rem; min-height: 40px; cursor: pointer; }
+  .types button[aria-pressed="true"] { background: var(--ks); color: var(--ink); border-color: var(--k); }
+  .notice { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .notice::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--k); }
+  .notice-band { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.2rem 0; font-size: var(--fs-sm); font-weight: 700; color: var(--k); }
+  .notice-body { padding: 0.5rem 1.2rem 1.2rem; display: grid; gap: 0.85rem; }
+  .notice-head { font-size: var(--fs-xl); font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .counts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; padding: 0; list-style: none; }
+  .counts li { font-size: var(--fs-sm); color: var(--muted); }
+  .counts strong { color: var(--ink); font-size: var(--fs-lg); font-weight: 800; margin-right: 0.3rem; font-variant-numeric: tabular-nums; }
+  .counts .is-bad strong { color: var(--bad); }
+  .highlights { padding-left: 1.1rem; display: grid; gap: 0.3rem; }
+  .watch-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+  .btn { font-size: var(--fs-sm); font-weight: 700; border: 0; background: var(--accent); color: var(--panel); border-radius: var(--radius-sm); padding: 0.6rem 1rem; min-height: 44px; cursor: pointer; }
+  .btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .watching, .preview-note { font-size: var(--fs-sm); color: var(--muted); }
+  .feed-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .feed-head h2 { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -0.02em; }
+  .feed-count { color: var(--muted); font-size: var(--fs-sm); }
+  .day { display: grid; gap: 0.5rem; }
+  .day h3 { margin: 1rem 0 0.25rem; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); }
+  .item { display: grid; grid-template-columns: 0.3rem 1fr; gap: 0.85rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.75rem 0.9rem 0.75rem 0.75rem; }
+  .item .bar { border-radius: 999px; background: var(--line); }
+  .item.is-bad { background: var(--bad-soft); border-color: transparent; }
+  .item.is-bad .bar { background: var(--bad); }
+  .item.is-notice .bar { background: var(--notice); }
+  .item-title { font-weight: 700; }
+  .item-meta { margin-top: 0.15rem; color: var(--muted); font-size: var(--fs-sm); }
+  .item-type { font-weight: 700; color: var(--ink); }
+  .empty { padding: 1.5rem; border: 1px dashed var(--line); border-radius: var(--radius-sm); color: var(--muted); }
+  .more { justify-self: start; }
+  .method { font-size: var(--fs-sm); color: var(--muted); border-top: 1px solid var(--line); padding-top: 1rem; }
+  .method ul { margin-top: 0.5rem; padding-left: 1.1rem; display: grid; gap: 0.3rem; }
+  .method a { color: var(--accent); font-weight: 700; }
+  @media (prefers-reduced-motion: no-preference) {
+    .notice.flash { animation: flash 600ms ease-out; }
+    @keyframes flash { from { box-shadow: 0 0 0 6px var(--ks); } to { box-shadow: 0 0 0 0 transparent; } }
+  }
+
+  /* Match My MoCo: road-sign type, sign colors, no boxes */
+  :root { --sans: "Overpass", "Helvetica Neue", Arial, sans-serif; --bg: #FFFFFF; --panel: #FFFFFF; --ink: #222222; --muted: #6A6A66; --line: #DADAD5;
+    --accent: #0B6B47; --accent-soft: #E9F2ED; --k: #0B6B47; --ks: #E9F2ED; --notice: #E8B000; --bad: #B3121D; --bad-soft: #FBEDEE; --radius: 0.3rem; --radius-sm: 0.3rem; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #151715; --panel: #151715; --ink: #F1F1EE; --muted: #9D9D97; --line: #31352F; --accent: #66CFA2; --accent-soft: #1E2A23; --k: #66CFA2; --ks: #1E2A23; --bad: #FF6B6B; --bad-soft: #2A1A1A; } }
+  body { font-feature-settings: "tnum" 1; }
+  .masthead { background: #0E2236; color: #FFFFFF; } .masthead h1 { color: #FFFFFF; }
+  .brand svg { stroke: #7FD8B0; } .lede { color: #C7D2DD; } .sample { color: #C7D2DD; border-color: rgba(255,255,255,0.3); }
+  .notice { background: #0E2236; color: #DCE4EC; border-top: 0; padding: 0 1.25rem; } .notice-band, .notice-head, .counts strong { color: #FFFFFF; } .counts li, .preview-note, .watching { color: #A9B8C8; } .notice .btn { background: #4CC38A; color: #0E2236; }
+  .controls { border: 0; padding: 0; background: none; }
+  select, input[type="search"] { background-color: transparent; border: 0; border-bottom: 2px solid var(--line); border-radius: 0; padding-left: 0; }
+  .notice { border: 0; border-top: 2px solid var(--ink); border-radius: 0; }
+  .notice::before { display: none; }
+  .notice-band { color: var(--ink); padding-left: 0; } .notice-body { padding-left: 0; padding-right: 0; }
+  .item { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding-left: 0; }
+  .item.is-bad { background: none; } .types button[aria-pressed="true"] { background: var(--ks); }
+</style>
+</head>
+<body>
+<header class="masthead"><div class="mast-inner">
+    <p class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s-7-6.2-7-11.5a7 7 0 1 1 14 0c0 5.3-7 11.5-7 11.5z"/><circle cx="12" cy="10" r="2.6"/></svg>My MoCo</p>
+    <h1>Neighborhood Alerts</h1>
+    <p class="lede">See what changed near you in Montgomery County: new building and demolition permits, restaurant inspections, liquor license requests and housing code cases, in one place.</p>
+    <p class="sample">Prototype with made-up sample events</p>
+  </div></header>
+<main class="wrap">
+
+  <section class="controls" aria-label="Choose what to watch">
+    <label class="field">Area
+      <select id="area"></select>
+    </label>
+    <label class="field">Street (optional)
+      <input id="street" type="search" placeholder="For example, Georgia Ave" autocomplete="off">
+    </label>
+    <div class="field" role="group" aria-label="Time period">
+      <span>Period</span>
+      <div class="seg">
+        <button type="button" data-days="7" aria-pressed="true">This week</button>
+        <button type="button" data-days="30" aria-pressed="false">Last 30 days</button>
+      </div>
+    </div>
+  </section>
+  <div class="types" id="types" role="group" aria-label="Kinds of change"></div>
+
+  <section class="notice" id="notice" aria-live="polite">
+    <div class="notice-band"><span>Your weekly notice</span><span id="notice-range"></span></div>
+    <div class="notice-body">
+      <p class="notice-head" id="notice-head"></p>
+      <ul class="counts" id="counts"></ul>
+      <ul class="highlights" id="highlights"></ul>
+      <div class="watch-row">
+        <button class="btn" type="button" id="watch" aria-pressed="false">Watch this area</button>
+        <span class="watching" id="watching"></span>
+      </div>
+      <p class="preview-note">This card is what a weekly alert email would say. Sign-up and sending aren’t built in this prototype; watched areas are saved only in this browser.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="feed-title">
+    <div class="feed-head"><h2 id="feed-title">Every change</h2><span class="feed-count" id="feed-count"></span></div>
+    <div id="feed"></div>
+    <button class="btn more" type="button" id="more" hidden>Show more</button>
+  </section>
+
+  <footer class="method">
+    How this works. <a href="index.html">See your full briefing in My MoCo</a>.
+    <ul>
+      <li>Events show the block, never an exact address or a person’s name, to protect privacy.</li>
+      <li>Real alerts would draw on dataMontgomery’s permit, food inspection, alcohol license and housing code enforcement datasets, checked each day for anything new.</li>
+      <li>A red bar marks a failed inspection, a closure or a code violation. A yellow bar marks a demolition or a liquor license request, things neighbors often want a say in.</li>
+    </ul>
+  </footer>
+</main>
+<script>
+  // Load today's data, then start the page. The nightly job replaces data/mymoco_data.json.
+  fetch('data/mymoco_data.json', { cache: 'no-store' })
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((d) => { window.DATA = d; const s = document.createElement('script'); s.src = 'alerts.js'; document.body.appendChild(s); })
+    .catch(() => { document.getElementById('feed').innerHTML = '<p class="load-error">Today’s data didn’t load. Refresh the page, or try again in a few minutes.</p>'; });
+</script>
+</body>
+</html>

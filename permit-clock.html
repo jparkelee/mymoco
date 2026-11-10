@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Permit Clock · My MoCo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/d3.min.js"></script>
+<script>window.DASH_CONFIG = { datasets: { permits: 'data/permits_clean.csv' }, params: { project: 'All', area: 'All' } };</script>
+<script src="assets/dash-shim.js"></script>
+</head>
+<body>
+<nav class="site-nav" aria-label="My MoCo tools"><a href="index.html">My MoCo</a><a href="alerts.html">Neighborhood Alerts</a><a href="permit-clock.html" aria-current="page">Permit Clock</a><a href="fairness-check.html">Fairness Check</a></nav>
+<p class="site-updated" id="site-updated"></p>
+<div id="dash-root">
+<style>
+  .pc { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: grid; gap: var(--cds-gap-lg); max-width: 72rem; margin-inline: auto; }
+  .pc p, .pc h1, .pc h2 { margin: 0; }
+  .pc-head { display: grid; gap: var(--cds-gap-sm); }
+  .pc-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; }
+  .pc-lede { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); max-width: 64ch; }
+  .pc-sample { display: flex; align-items: center; gap: var(--cds-gap-sm); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .pc-sample-dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-warn); }
+
+  .pc-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--cds-gap-md); }
+  .pc-field { display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .pc-field select, .pc-reset { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); }
+  .pc-field select { min-width: min(100%, 13rem); }
+  .pc-reset { cursor: pointer; }
+  .pc-field select:focus-visible, .pc-reset:focus-visible, .pc-sort:focus-visible, .pc-table tbody tr:focus-visible, .pc-chart g[tabindex]:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+
+  .pc-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); align-content: start; min-width: 0; }
+  .pc-h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .pc-note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); max-width: 72ch; }
+  .pc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--cds-gap-md); }
+
+  .pc-hero { gap: var(--cds-gap-md); }
+  .pc-hero-label { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); }
+  .pc-hero-number { display: flex; align-items: baseline; gap: var(--cds-gap-sm); font-family: var(--font-anthropic-serif); line-height: 1; }
+  .pc .pc-hero-number b { font-weight: 400; font-size: calc(var(--cds-font-size-title) * 3); font-variant-numeric: tabular-nums; min-width: 2ch; }
+  .pc-unit { font-size: var(--cds-font-size-title); color: var(--color-fg-muted); }
+  .pc-scope { font-size: var(--cds-font-size-body); color: var(--color-fg-muted); max-width: 72ch; }
+  .pc-ruler { position: relative; min-height: 132px; }
+
+  .pc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--cds-gap-md); }
+  .pc-tile { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+  .pc-tile-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .pc-tile-value { display: flex; align-items: baseline; gap: var(--cds-gap-xs); font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-title); line-height: 1.1; }
+  .pc .pc-tile-value b { font-weight: 400; font-variant-numeric: tabular-nums; }
+  .pc-unit-s { font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body); color: var(--color-fg-muted); }
+  .pc-tile-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .pc .pc-tile-note b { font-weight: var(--cds-font-weight-medium); color: var(--color-fg); }
+  .pc .pc-worse { color: var(--color-bad); }
+  .pc .pc-better { color: var(--color-ok); }
+
+  .pc-chart { position: relative; min-height: 260px; }
+  .pc-chart svg, .pc-ruler svg { display: block; }
+  .pc-tip { position: absolute; top: 0; left: 0; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); line-height: 1.4; white-space: nowrap; z-index: 2; }
+  .pc-tip-head { color: var(--cds-text-secondary); }
+  .pc-tick { fill: var(--color-fg-muted); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .pc-label { fill: var(--color-fg); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .pc-label-strong { fill: var(--color-fg); font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); font-family: var(--font-anthropic-sans); }
+
+  .pc-table-wrap { max-height: 28rem; overflow: auto; }
+  .pc-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+  .pc-table th { position: sticky; top: 0; background: var(--color-panel); text-align: right; vertical-align: bottom; font-weight: var(--cds-font-weight-medium); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); }
+  .pc-table td { text-align: right; padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); }
+  .pc-table th:first-child, .pc-table td:first-child { text-align: left; }
+  .pc-table tbody tr { cursor: pointer; }
+  .pc-table tbody tr:hover td { background: var(--color-bg); }
+  .pc .pc-table tr.is-picked td { font-weight: var(--cds-font-weight-medium); color: var(--color-fg); }
+  .pc-sort { all: unset; cursor: pointer; }
+  .pc-sort:hover { color: var(--color-fg); }
+
+  .pc-method ul { margin: 0; padding-left: 1.1rem; display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-body); color: var(--color-fg-muted); max-width: 75ch; }
+
+  .pc [data-dash-source-state=empty] { color: transparent; }
+  .pc [data-dash-source-state=refreshing] { opacity: 0.5; transition: opacity var(--cds-dur-slow); }
+  .pc-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .pc-fail-dot { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--color-bad); }
+  @media (max-width: 36rem) { .pc .pc-narrow-hide { display: none; } }
+</style>
+
+<div class="pc">
+  <header class="pc-head" id="top">
+    <h1 class="pc-title">Permit Clock</h1>
+    <p class="pc-lede">How long Montgomery County residential building permits take, from the day an application is filed to the day the permit is issued.</p>
+    <p data-sample-note class="pc-sample"><span class="pc-sample-dot"></span>Prototype: every number on this page comes from made-up sample permits, not real county records.</p>
+  </header>
+
+  <div class="pc-filters" id="filters">
+    <label class="pc-field">Project type
+      <select data-draw="project-select" data-source="permit_stats" aria-label="Project type"></select>
+    </label>
+    <label class="pc-field">Area
+      <select data-draw="area-select" data-source="permit_stats" aria-label="Area"></select>
+    </label>
+    <button class="pc-reset" type="button">Clear filters</button>
+  </div>
+
+  <section class="pc-card pc-hero" id="typical-wait">
+    <h2 class="pc-hero-label">Typical wait for a permit that needed review</h2>
+    <p class="pc-hero-number"><b class="dash-skeleton" data-draw="hero-median" data-source="permit_stats" data-field="median_days_review">—</b><span class="pc-unit">days</span></p>
+    <p class="pc-scope">Showing <span data-draw="pick-project">—</span> permits in <span data-draw="pick-area">—</span>, issued in the last 12 months. Typical means the middle permit if you lined them all up from fastest to slowest.</p>
+    <p class="pc-scope pc-few" hidden>Too few permits match this mix to give a fair answer. Try a wider area or project type.</p>
+    <div class="pc-ruler dash-skeleton" data-draw="ruler" data-source="permit_stats" id="wait-ruler"></div>
+  </section>
+
+  <section class="pc-tiles" id="headline">
+    <div class="pc-tile" id="tile-same-day">
+      <p class="pc-tile-label">Issued the same day</p>
+      <p class="pc-tile-value"><b class="dash-skeleton" data-draw="kpi-same-day" data-source="permit_stats" data-field="same_day_share">—</b></p>
+      <p class="pc-tile-note">Filed and issued on the same day, usually simple jobs. Last 12 months.</p>
+    </div>
+    <div class="pc-tile" id="tile-change">
+      <p class="pc-tile-label">Change from the year before</p>
+      <p class="pc-tile-value"><b class="dash-skeleton" data-draw="kpi-change" data-source="permit_stats" data-field="change_days">—</b><span class="pc-unit-s">days</span></p>
+      <p class="pc-tile-note">Typical review wait, last 12 months compared with the 12 months before.</p>
+    </div>
+    <div class="pc-tile" id="tile-waiting">
+      <p class="pc-tile-label">Still waiting now</p>
+      <p class="pc-tile-value"><b class="dash-skeleton" data-draw="kpi-open" data-source="permit_stats" data-field="open_now">—</b><span class="pc-unit-s">applications</span></p>
+      <p class="pc-tile-note"><b data-draw="kpi-open-long" data-source="permit_stats" data-field="open_over_90_days">—</b> of them were filed more than <span data-draw="long-wait">—</span> days ago.</p>
+    </div>
+    <div class="pc-tile" id="tile-issued">
+      <p class="pc-tile-label">Permits issued</p>
+      <p class="pc-tile-value"><b class="dash-skeleton" data-draw="kpi-issued" data-source="permit_stats" data-field="issued_12m">—</b></p>
+      <p class="pc-tile-note">Last 12 months: how many permits the numbers above rest on.</p>
+    </div>
+  </section>
+
+  <section class="pc-card" id="trend">
+    <h2 class="pc-h2">Is it getting slower?</h2>
+    <p class="pc-note">Typical review wait for permits issued each month. The shaded band holds the middle half: a quarter of permits were faster and a quarter were slower.</p>
+    <p class="pc-note pc-sparse" hidden>Few permits each month in this mix, so the line skips months with too few to measure.</p>
+    <div class="pc-chart dash-skeleton" data-draw="trend-chart" data-source="wait_trend" id="trend-chart"></div>
+  </section>
+
+  <div class="pc-grid">
+    <section class="pc-card" id="spread">
+      <h2 class="pc-h2">How long permits actually took</h2>
+      <p class="pc-note">Share of permits issued in the last 12 months, by length of wait. The long tail of slow permits is why this page reports the middle permit instead of the average.</p>
+      <div class="pc-chart dash-skeleton" data-draw="spread-chart" data-source="wait_spread" id="spread-chart"></div>
+    </section>
+    <section class="pc-card" id="by-project">
+      <h2 class="pc-h2">Typical wait by type of project</h2>
+      <p class="pc-note">Permits that needed review, last 12 months. Select a bar to focus the page on that project type; select it again to go back to all.</p>
+      <div class="pc-chart dash-skeleton" data-draw="project-chart" data-source="permit_stats" id="project-chart"></div>
+    </section>
+  </div>
+
+  <section class="pc-card" id="by-area">
+    <h2 class="pc-h2">By area</h2>
+    <p class="pc-note">The same measures for each community, for the project type you picked. Select a row to focus the page on that area; select it again to go back to all areas.</p>
+    <div class="pc-table-wrap">
+      <table class="pc-table" data-source="permit_stats" data-row-key="project_type,city">
+        <thead>
+          <tr>
+            <th data-field="city" aria-sort="none"><button class="pc-sort" type="button" data-sort="city">Area</button></th>
+            <th data-field="issued_12m" aria-sort="none"><button class="pc-sort" type="button" data-sort="issued_12m">Issued</button></th>
+            <th class="pc-narrow-hide" data-field="same_day_share" aria-sort="none"><button class="pc-sort" type="button" data-sort="same_day_share">Same day</button></th>
+            <th data-field="median_days_review" aria-sort="descending"><button class="pc-sort" type="button" data-sort="median_days_review">Typical wait, days</button></th>
+            <th data-field="p90_days_review" aria-sort="none"><button class="pc-sort" type="button" data-sort="p90_days_review">1 in 10 waited over, days</button></th>
+            <th class="pc-narrow-hide" data-field="change_days" aria-sort="none"><button class="pc-sort" type="button" data-sort="change_days">Change, days</button></th>
+          </tr>
+        </thead>
+        <tbody data-draw="area-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="pc-card pc-method" id="method">
+    <h2 class="pc-h2">How the clock works</h2>
+    <ul>
+      <li>Wait is the day a permit was issued minus the day it was filed, in calendar days, so weekends and holidays count.</li>
+      <li>Permits issued the same day they were filed are counted separately. Mixing a same-day approval with a two-month plan review would hide what both groups go through.</li>
+      <li>Typical is the median: the middle permit when every wait is lined up. One permit stuck for a year can drag an average way up, but it barely moves the middle.</li>
+      <li>Months are grouped by when permits were issued. Slow permits still in review would otherwise make recent months look faster than they are; they show up under “Still waiting now” instead.</li>
+      <li>The clock includes days an applicant spent fixing plans or answering questions, so not every day is the county’s.</li>
+      <li>Real numbers would come from dataMontgomery’s Residential Permit dataset (m88u-pqki), using its addeddate and issueddate fields. This prototype uses made-up permits in that same shape.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const LONG_WAIT = 90; // days; the same limit the permit_stats calc uses for "still waiting"
+const fmtCount = d3.format(',');
+const fmtShare = d3.format('.0%');
+const fmtMonth = d3.utcFormat('%b %Y');
+const fmtMonthLong = d3.utcFormat('%B %Y');
+const signed = (v) => (v > 0 ? '+' : v < 0 ? '-' : '') + fmtCount(Math.abs(v));
+const whereValue = (s) => String(s).replace(/%/g, '%25').replace(/&/g, '%26').replace(/=/g, '%3D');
+
+dash.calc('permit_stats', {
+  inputs: ['permits'],
+  title: 'Wait stats by project and area',
+  description: 'For each project type and area (and All): permits issued in the last 12 months, share issued the same day, review-wait percentiles, change from the 12 months before, and applications still waiting.',
+  fn: (permits) => {
+    const DAY = 864e5, LONG_WAIT = 90, MIN_PERMITS = 5;
+    const pct = (xs, p) => {
+      if (xs.length < MIN_PERMITS) return null;
+      const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * p, lo = Math.floor(i);
+      return Math.round(s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (i - lo));
+    };
+    const asOf = permits.reduce((m, p) => Math.max(m, Date.parse(p.issued_date || p.applied_date)), 0);
+    const groups = new Map();
+    for (const p of permits) {
+      const issued = p.issued_date ? Date.parse(p.issued_date) : null;
+      for (const [project_type, city] of [[p.project_type, p.city], [p.project_type, 'All'], ['All', p.city], ['All', 'All']]) {
+        const key = project_type + '|' + city;
+        if (!groups.has(key)) groups.set(key, { project_type, city, last: [], before: [], open: [] });
+        const g = groups.get(key);
+        if (issued === null) g.open.push((asOf - Date.parse(p.applied_date)) / DAY);
+        else if (issued > asOf - 365 * DAY) g.last.push(Number(p.wait_days));
+        else if (issued > asOf - 730 * DAY) g.before.push(Number(p.wait_days));
+      }
+    }
+    return [...groups.values()].map((g) => {
+      const review = g.last.filter((w) => w > 0);
+      const median = pct(review, 0.5), prior = pct(g.before.filter((w) => w > 0), 0.5);
+      return {
+        project_type: g.project_type, city: g.city, issued_12m: g.last.length,
+        same_day_share: g.last.length ? Math.round(100 * (g.last.length - review.length) / g.last.length) / 100 : null,
+        p25_days_review: pct(review, 0.25), median_days_review: median, p90_days_review: pct(review, 0.9),
+        median_days_review_prior: prior, change_days: median === null || prior === null ? null : median - prior,
+        open_now: g.open.length, open_over_90_days: g.open.filter((d) => d > LONG_WAIT).length,
+      };
+    });
+  },
+});
+
+dash.calc('wait_trend', {
+  inputs: ['permits'],
+  title: 'Review wait by month issued',
+  description: 'For each project type and area (and All): 25th, 50th and 75th percentile wait of permits that needed review, by month issued from January 2024; months with fewer than 5 permits left out.',
+  fn: (permits) => {
+    const FIRST_MONTH = '2024-01', MIN_PERMITS = 5;
+    const pct = (s, p) => {
+      const i = (s.length - 1) * p, lo = Math.floor(i);
+      return Math.round(s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (i - lo));
+    };
+    const groups = new Map();
+    for (const p of permits) {
+      const wait = Number(p.wait_days), month = (p.issued_date || '').slice(0, 7);
+      if (!p.issued_date || !(wait > 0) || month < FIRST_MONTH) continue;
+      for (const [project_type, city] of [[p.project_type, p.city], [p.project_type, 'All'], ['All', p.city], ['All', 'All']]) {
+        const key = project_type + '|' + city + '|' + month;
+        if (!groups.has(key)) groups.set(key, { project_type, city, month, waits: [] });
+        groups.get(key).waits.push(wait);
+      }
+    }
+    return [...groups.values()].filter((g) => g.waits.length >= MIN_PERMITS).map((g) => {
+      const s = g.waits.sort((a, b) => a - b);
+      return { project_type: g.project_type, city: g.city, month: g.month, permits: s.length,
+        p25_days: pct(s, 0.25), median_days: pct(s, 0.5), p75_days: pct(s, 0.75) };
+    });
+  },
+});
+
+dash.calc('wait_spread', {
+  inputs: ['permits'],
+  title: 'Permits by length of wait',
+  description: 'For each project type and area (and All): how many permits issued in the last 12 months fell in each wait range, and their share.',
+  fn: (permits) => {
+    const DAY = 864e5;
+    const RANGES = [[0, 'Same day'], [7, '1 to 7 days'], [30, '8 to 30 days'], [60, '31 to 60 days'],
+      [90, '61 to 90 days'], [180, '91 to 180 days'], [Infinity, 'Over 180 days']];
+    const asOf = permits.reduce((m, p) => Math.max(m, Date.parse(p.issued_date || p.applied_date)), 0);
+    const groups = new Map();
+    for (const p of permits) {
+      if (!p.issued_date || Date.parse(p.issued_date) <= asOf - 365 * DAY) continue;
+      const wait = Number(p.wait_days), r = RANGES.findIndex(([max]) => wait <= max);
+      for (const [project_type, city] of [[p.project_type, p.city], [p.project_type, 'All'], ['All', p.city], ['All', 'All']]) {
+        const key = project_type + '|' + city;
+        if (!groups.has(key)) groups.set(key, { project_type, city, counts: RANGES.map(() => 0) });
+        groups.get(key).counts[r] += 1;
+      }
+    }
+    return [...groups.values()].flatMap((g) => {
+      const total = g.counts.reduce((a, b) => a + b, 0);
+      return RANGES.map(([, range], i) => ({ project_type: g.project_type, city: g.city, range, range_order: i,
+        permits: g.counts[i], share: Math.round(1000 * g.counts[i] / total) / 1000 }));
+    });
+  },
+});
+
+const picked = () => {
+  const p = dash.params();
+  return { project: p.project || 'All', area: p.area || 'All' };
+};
+const statRows = () => {
+  const s = dash.data('permit_stats');
+  return s.status === 'ok' ? s.data : [];
+};
+const statRow = () => {
+  const { project, area } = picked();
+  return statRows().find((r) => r.project_type === project && r.city === area) || null;
+};
+
+// Shows loading or a failure in el; true when every source it needs is ready.
+const ready = (el, ids, isChart) => {
+  const states = ids.map((id) => dash.data(id).status);
+  const ok = states.every((s) => s === 'ok');
+  const failed = states.includes('error');
+  el.classList.toggle('dash-skeleton', !ok && !failed);
+  if (ok) return true;
+  if (failed && isChart) {
+    const box = document.createElement('div');
+    box.className = 'pc-fail';
+    const dot = document.createElement('span');
+    dot.className = 'pc-fail-dot';
+    box.append(dot, 'Failed to load');
+    el.replaceChildren(box);
+  } else if (isChart) {
+    el.replaceChildren();
+  } else {
+    el.textContent = '—';
+  }
+  return false;
+};
+
+const measure = (svg, text, cls) => {
+  const t = svg.append('text').attr('class', cls).text(text);
+  const w = t.node().getComputedTextLength();
+  t.remove();
+  return w;
+};
+
+const makeTip = (box) => {
+  const tip = document.createElement('div');
+  tip.className = 'pc-tip';
+  tip.hidden = true;
+  box.append(tip);
+  return {
+    show(lines, x, y) {
+      tip.replaceChildren(...lines.map((line, i) => {
+        const row = document.createElement('div');
+        if (i === 0) row.className = 'pc-tip-head';
+        row.textContent = line;
+        return row;
+      }));
+      tip.hidden = false;
+      const left = Math.max(0, Math.min(box.clientWidth - tip.offsetWidth, x + 12));
+      const top = Math.max(0, y - tip.offsetHeight - 10);
+      tip.style.transform = `translate(${left}px, ${top}px)`;
+    },
+    hide() { tip.hidden = true; },
+  };
+};
+
+// Headline numbers: each points its mark at the row for the chosen project and area.
+const drawStat = (name, field, format, colorChange) => dash.draw(name, (el) => {
+  const { project, area } = picked();
+  el.dataset.where = `project_type=${whereValue(project)}&city=${whereValue(area)}`;
+  el.classList.remove('pc-worse', 'pc-better');
+  if (!ready(el, ['permit_stats'], false)) return;
+  const row = statRow();
+  const v = row ? row[field] : null;
+  el.textContent = v === null || v === undefined ? '—' : format(v);
+  if (colorChange && v > 0) el.classList.add('pc-worse');
+  if (colorChange && v < 0) el.classList.add('pc-better');
+});
+drawStat('hero-median', 'median_days_review', fmtCount);
+drawStat('kpi-same-day', 'same_day_share', fmtShare);
+drawStat('kpi-change', 'change_days', signed, true);
+drawStat('kpi-open', 'open_now', fmtCount);
+drawStat('kpi-open-long', 'open_over_90_days', fmtCount);
+drawStat('kpi-issued', 'issued_12m', fmtCount);
+
+dash.draw('pick-project', (el) => {
+  const { project } = picked();
+  el.textContent = project === 'All' ? 'all' : project.toLowerCase();
+});
+dash.draw('pick-area', (el) => {
+  const { area } = picked();
+  el.textContent = area === 'All' ? 'all areas' : area;
+});
+dash.draw('long-wait', (el) => { el.textContent = fmtCount(LONG_WAIT); });
+
+dash.draw('project-select', (sel) => {
+  const names = statRows().filter((r) => r.city === 'All' && r.project_type !== 'All').map((r) => r.project_type)
+    .sort((a, b) => (a === 'Other') - (b === 'Other') || a.localeCompare(b));
+  sel.replaceChildren(new Option('All project types', 'All'), ...names.map((n) => new Option(n, n)));
+  sel.value = picked().project;
+  sel.onchange = () => dash.setParams({ project: sel.value });
+});
+dash.draw('area-select', (sel) => {
+  const names = statRows().filter((r) => r.project_type === 'All' && r.city !== 'All').map((r) => r.city)
+    .sort((a, b) => a.localeCompare(b));
+  sel.replaceChildren(new Option('All areas', 'All'), ...names.map((n) => new Option(n, n)));
+  sel.value = picked().area;
+  sel.onchange = () => dash.setParams({ area: sel.value });
+});
+
+// The clock face: where the fastest quarter, the middle permit and the slowest tenth land.
+dash.draw('ruler', (el) => {
+  if (!ready(el, ['permit_stats'], true)) return;
+  el.replaceChildren();
+  const row = statRow();
+  if (!row || row.median_days_review === null) return;
+  const fast = row.p25_days_review, mid = row.median_days_review, slow = row.p90_days_review;
+  const width = Math.max(el.clientWidth, 260), height = 132, trackY = 54, pad = 8;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('role', 'img')
+    .attr('aria-label', `A quarter of permits were done within ${fast} days, the typical wait was ${mid} days, and 1 in 10 took longer than ${slow} days.`);
+  const max = Math.max(slow * 1.08, 14);
+  const x = d3.scaleLinear([0, max], [pad, width - pad]);
+  const step = max <= 120 ? 7 : max <= 400 ? 30 : 90;
+  svg.append('g').selectAll('line').data(d3.range(0, max + 0.001, step)).join('line')
+    .attr('x1', (d) => x(d)).attr('x2', (d) => x(d)).attr('y1', trackY - 15).attr('y2', trackY - 8)
+    .attr('stroke', 'var(--cds-chart-axis)').attr('stroke-width', 1);
+  svg.append('line').attr('x1', x(0)).attr('x2', x(max)).attr('y1', trackY).attr('y2', trackY)
+    .attr('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 8).attr('stroke-linecap', 'round');
+  svg.append('line').attr('x1', x(fast)).attr('x2', x(slow)).attr('y1', trackY).attr('y2', trackY)
+    .attr('stroke', dash.colors[0]).attr('stroke-opacity', 0.35).attr('stroke-width', 8).attr('stroke-linecap', 'round');
+  for (const v of [fast, slow]) {
+    svg.append('line').attr('x1', x(v)).attr('x2', x(v)).attr('y1', trackY - 9).attr('y2', trackY + 9)
+      .attr('stroke', dash.colors[0]).attr('stroke-width', 2).attr('stroke-linecap', 'round');
+  }
+  svg.append('circle').attr('cx', x(mid)).attr('cy', trackY).attr('r', 9)
+    .attr('fill', dash.colors[0]).attr('stroke', 'var(--color-panel)').attr('stroke-width', 3);
+  const place = (text, cls, v, y) => {
+    const t = svg.append('text').attr('class', cls).attr('y', y).text(text);
+    const w = t.node().getComputedTextLength();
+    t.attr('x', Math.max(0, Math.min(width - w, x(v) - w / 2)));
+  };
+  place(`Typical: ${fmtCount(mid)} days`, 'pc-label-strong', mid, 24);
+  place(`1 in 4 done within ${fmtCount(fast)} days`, 'pc-label', fast, 92);
+  place(`1 in 10 took longer than ${fmtCount(slow)} days`, 'pc-label', slow, 118);
+});
+
+dash.draw('trend-chart', (el) => {
+  if (!ready(el, ['wait_trend'], true)) return;
+  el.replaceChildren();
+  const { project, area } = picked();
+  const rows = dash.data('wait_trend').data
+    .filter((r) => r.project_type === project && r.city === area)
+    .map((r) => ({ ...r, date: new Date(r.month + '-01T00:00:00Z') }))
+    .sort((a, b) => a.date - b.date);
+  if (rows.length < 2) return;
+  const width = Math.max(el.clientWidth, 260), height = 260;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('role', 'img').attr('aria-label', 'Typical review wait by month issued, with the middle half of permits shaded');
+  const y = d3.scaleLinear([0, d3.max(rows, (r) => r.p75_days) * 1.08], [height - 30, 14]).nice();
+  const yTicks = y.ticks(4);
+  const tickW = d3.max(yTicks, (t) => measure(svg, fmtCount(t), 'pc-tick'));
+  const last = rows[rows.length - 1];
+  const endText = `${fmtCount(last.median_days)} days`;
+  const endW = measure(svg, endText, 'pc-label-strong');
+  const m = { top: 14, right: endW + 16, bottom: 30, left: tickW + 10 };
+  const x = d3.scaleUtc(d3.extent(rows, (r) => r.date), [m.left, width - m.right]);
+  y.range([height - m.bottom, m.top]);
+
+  const grid = svg.append('g');
+  grid.selectAll('line').data(yTicks).join('line')
+    .attr('x1', m.left).attr('x2', width - m.right).attr('y1', (t) => y(t)).attr('y2', (t) => y(t))
+    .attr('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 1);
+  grid.selectAll('text').data(yTicks).join('text').attr('class', 'pc-tick')
+    .attr('x', m.left - 8).attr('y', (t) => y(t)).attr('dy', '0.32em').attr('text-anchor', 'end').text((t) => fmtCount(t));
+
+  let xTicks = x.ticks(d3.utcMonth.every(width < 560 ? 12 : 6));
+  const labelW = d3.max(xTicks, (d) => measure(svg, fmtMonth(d), 'pc-tick')) || 0;
+  while (xTicks.length > 2 && x(xTicks[1]) - x(xTicks[0]) < labelW + 12) xTicks = xTicks.filter((_, i) => i % 2 === 0);
+  xTicks = xTicks.filter((d) => x(d) + labelW <= width);
+  svg.append('g').selectAll('text').data(xTicks).join('text').attr('class', 'pc-tick')
+    .attr('x', (d) => x(d)).attr('y', height - 8).text((d) => fmtMonth(d));
+
+  svg.append('path').attr('fill', dash.colors[0]).attr('fill-opacity', 0.16)
+    .attr('d', d3.area().x((r) => x(r.date)).y0((r) => y(r.p25_days)).y1((r) => y(r.p75_days))(rows));
+  svg.append('path').attr('fill', 'none').attr('stroke', dash.colors[0]).attr('stroke-width', 2)
+    .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+    .attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.median_days))(rows));
+  svg.append('circle').attr('cx', x(last.date)).attr('cy', y(last.median_days)).attr('r', 3.5).attr('fill', dash.colors[0]);
+  svg.append('text').attr('class', 'pc-label-strong').attr('x', x(last.date) + 8).attr('y', y(last.median_days))
+    .attr('dy', '0.32em').text(endText);
+
+  const tip = makeTip(el);
+  const rule = svg.append('line').attr('y1', m.top).attr('y2', height - m.bottom)
+    .attr('stroke', 'var(--cds-chart-reference)').style('display', 'none');
+  const dot = svg.append('circle').attr('r', 4.5).attr('fill', dash.colors[0])
+    .attr('stroke', 'var(--color-panel)').attr('stroke-width', 2).style('display', 'none');
+  const nearest = d3.bisector((r) => r.date).center;
+  svg.append('rect').attr('x', m.left).attr('y', m.top)
+    .attr('width', Math.max(0, width - m.left - m.right)).attr('height', height - m.top - m.bottom)
+    .attr('fill', 'transparent')
+    .on('pointermove', (event) => {
+      const [px] = d3.pointer(event);
+      const r = rows[nearest(rows, x.invert(px))];
+      const cx = x(r.date), cy = y(r.median_days), scale = el.clientWidth / width;
+      rule.style('display', null).attr('x1', cx).attr('x2', cx);
+      dot.style('display', null).attr('cx', cx).attr('cy', cy);
+      tip.show([fmtMonthLong(r.date), `Typical: ${fmtCount(r.median_days)} days`,
+        `Middle half: ${fmtCount(r.p25_days)} to ${fmtCount(r.p75_days)} days`, `Permits: ${fmtCount(r.permits)}`], cx * scale, cy * scale);
+    })
+    .on('pointerleave', () => { rule.style('display', 'none'); dot.style('display', 'none'); tip.hide(); });
+});
+
+dash.draw('spread-chart', (el) => {
+  if (!ready(el, ['wait_spread'], true)) return;
+  el.replaceChildren();
+  const { project, area } = picked();
+  const rows = dash.data('wait_spread').data
+    .filter((r) => r.project_type === project && r.city === area)
+    .sort((a, b) => a.range_order - b.range_order);
+  if (!rows.length || !d3.sum(rows, (r) => r.permits)) return;
+  const width = Math.max(el.clientWidth, 260), bar = 22, gap = 10;
+  const height = rows.length * (bar + gap) - gap + 8;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('role', 'img').attr('aria-label', 'Share of permits by length of wait');
+  const labelW = d3.max(rows, (r) => measure(svg, r.range, 'pc-label'));
+  const valueW = measure(svg, '100%', 'pc-label') + 10;
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => r.share) || 1], [labelW + 12, width - valueW]);
+  const tip = makeTip(el);
+  const rowsG = svg.selectAll('g').data(rows).join('g')
+    .attr('transform', (r, i) => `translate(0, ${4 + i * (bar + gap)})`);
+  rowsG.append('text').attr('class', 'pc-label').attr('x', labelW).attr('y', bar / 2).attr('dy', '0.32em')
+    .attr('text-anchor', 'end').text((r) => r.range);
+  rowsG.append('rect').attr('x', x(0)).attr('width', (r) => Math.max(0, x(r.share) - x(0))).attr('height', bar).attr('rx', 3)
+    .attr('fill', (r) => (r.range_order === 0 ? dash.colors[1] : dash.colors[0]));
+  rowsG.append('text').attr('class', 'pc-label').attr('x', (r) => x(r.share) + 6).attr('y', bar / 2).attr('dy', '0.32em')
+    .text((r) => fmtShare(r.share));
+  rowsG.on('pointermove', (event, r) => {
+    const [px, py] = d3.pointer(event, el);
+    tip.show([r.range, `${fmtCount(r.permits)} permits`, `${fmtShare(r.share)} of those issued`], px, py);
+  }).on('pointerleave', () => tip.hide());
+});
+
+dash.draw('project-chart', (el) => {
+  if (!ready(el, ['permit_stats'], true)) return;
+  el.replaceChildren();
+  const { project, area } = picked();
+  const rows = statRows()
+    .filter((r) => r.city === area && r.project_type !== 'All' && r.median_days_review !== null)
+    .sort((a, b) => b.median_days_review - a.median_days_review);
+  if (!rows.length) return;
+  const width = Math.max(el.clientWidth, 260), bar = 20, gap = 10;
+  const height = rows.length * (bar + gap) - gap + 8;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('role', 'img').attr('aria-label', 'Typical review wait by type of project');
+  const days = (r) => `${fmtCount(r.median_days_review)} days`;
+  const labelW = d3.max(rows, (r) => measure(svg, r.project_type, 'pc-label'));
+  const valueW = d3.max(rows, (r) => measure(svg, days(r), 'pc-label')) + 10;
+  const x = d3.scaleLinear([0, d3.max(rows, (r) => r.median_days_review)], [labelW + 12, width - valueW]);
+  const tip = makeTip(el);
+  const choose = (r) => dash.setParams({ project: r.project_type === project ? 'All' : r.project_type });
+  const rowsG = svg.selectAll('g').data(rows).join('g')
+    .attr('transform', (r, i) => `translate(0, ${4 + i * (bar + gap)})`)
+    .attr('tabindex', 0).attr('role', 'button').style('cursor', 'pointer')
+    .attr('aria-label', (r) => `${r.project_type}: typical wait ${r.median_days_review} days`);
+  rowsG.append('rect').attr('x', 0).attr('y', -gap / 2).attr('width', width).attr('height', bar + gap).attr('fill', 'transparent');
+  rowsG.append('text').attr('class', 'pc-label').attr('x', labelW).attr('y', bar / 2).attr('dy', '0.32em')
+    .attr('text-anchor', 'end').text((r) => r.project_type);
+  rowsG.append('rect').attr('x', x(0)).attr('width', (r) => Math.max(0, x(r.median_days_review) - x(0)))
+    .attr('height', bar).attr('rx', 3)
+    .attr('fill', (r) => (project === 'All' || r.project_type === project ? dash.colors[0] : 'var(--cds-chart-muted)'));
+  rowsG.append('text').attr('class', 'pc-label').attr('x', (r) => x(r.median_days_review) + 6).attr('y', bar / 2)
+    .attr('dy', '0.32em').text(days);
+  rowsG.on('click', (event, r) => choose(r))
+    .on('keydown', (event, r) => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(r); }
+    })
+    .on('pointermove', (event, r) => {
+      const [px, py] = d3.pointer(event, el);
+      tip.show([r.project_type, `Typical: ${days(r)}`,
+        r.p90_days_review === null ? 'Too few permits for the slowest tenth' : `1 in 10 took longer than ${fmtCount(r.p90_days_review)} days`,
+        `${fmtCount(r.issued_12m)} issued, ${fmtShare(r.same_day_share)} the same day`], px, py);
+    })
+    .on('pointerleave', () => tip.hide());
+});
+
+let sortKey = 'median_days_review';
+let sortDir = -1;
+dash.draw('area-rows', (tbody) => {
+  const s = dash.data('permit_stats');
+  if (s.status !== 'ok') { tbody.replaceChildren(); return; }
+  const { project, area } = picked();
+  const rows = s.data.filter((r) => r.project_type === project && r.city !== 'All' && r.issued_12m > 0);
+  rows.sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * sortDir;
+  });
+  const show = (v, f) => (v === null || v === undefined ? '—' : f(v));
+  tbody.replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr');
+    tr.dataset.key = `${encodeURIComponent(r.project_type)},${encodeURIComponent(r.city)}`;
+    tr.tabIndex = 0;
+    if (r.city === area) tr.className = 'is-picked';
+    const cells = [
+      [r.city, ''],
+      [fmtCount(r.issued_12m), ''],
+      [show(r.same_day_share, fmtShare), 'pc-narrow-hide'],
+      [show(r.median_days_review, fmtCount), ''],
+      [show(r.p90_days_review, fmtCount), ''],
+      [show(r.change_days, signed), 'pc-narrow-hide'],
+    ];
+    for (const [text, cls] of cells) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      if (cls) td.className = cls;
+      tr.append(td);
+    }
+    return tr;
+  }));
+});
+
+document.querySelectorAll('.pc-sort').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.sort;
+    sortDir = key === sortKey ? -sortDir : key === 'city' ? 1 : -1;
+    sortKey = key;
+    document.querySelectorAll('.pc-sort').forEach((b) => {
+      const th = b.closest('th');
+      if (th) th.setAttribute('aria-sort', b.dataset.sort === sortKey ? (sortDir === 1 ? 'ascending' : 'descending') : 'none');
+    });
+    dash.draw('area-rows');
+  });
+});
+
+const pickArea = (tr) => {
+  const city = decodeURIComponent(tr.dataset.key.split(',')[1]);
+  dash.setParams({ area: picked().area === city ? 'All' : city });
+};
+document.querySelectorAll('.pc-table').forEach((table) => {
+  table.addEventListener('click', (event) => {
+    const tr = event.target.closest('tbody tr[data-key]');
+    if (tr) pickArea(tr);
+  });
+  table.addEventListener('keydown', (event) => {
+    const tr = event.target.closest('tbody tr[data-key]');
+    if (tr && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); pickArea(tr); }
+  });
+});
+
+document.querySelectorAll('.pc-reset').forEach((btn) => btn.addEventListener('click', () => dash.resetParams()));
+
+dash.onData(() => {
+  const statsOk = dash.data('permit_stats').status === 'ok';
+  const row = statsOk ? statRow() : null;
+  document.querySelectorAll('.pc-few').forEach((n) => { n.hidden = !(statsOk && (!row || row.median_days_review === null)); });
+  const trend = dash.data('wait_trend');
+  const { project, area } = picked();
+  const months = trend.status === 'ok' ? trend.data.filter((r) => r.project_type === project && r.city === area).length : 0;
+  document.querySelectorAll('.pc-sparse').forEach((n) => { n.hidden = !(trend.status === 'ok' && months < 24); });
+});
+</script>
+
+</div>
+<script>dash.start();</script>
+</body>
+</html>

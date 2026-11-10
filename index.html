@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My MoCo: your street this week</title>
+<meta name="description" content="What’s changing on your street in Montgomery County, Maryland, from the county’s open data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>  /* Type: Overpass, drawn from the lettering on U.S. road signs. One family; size steps from the classic scale. */
+  :root {
+    --paper: #FFFFFF; --ink: #222222; --body: #3B3B3B; --muted: #6A6A66; --rule: #DADAD5; --field: #F6F6F3;
+    --sign: #0B6B47; --sign-ink: #FFFFFF; --link: #0B6B47; --stop: #B3121D; --caution: #E8B000;
+    --f: "Overpass", "Helvetica Neue", Arial, sans-serif;
+    --t-sm: 0.875rem; --t-base: 1.125rem; --t-md: 1.3125rem; --t-lg: 1.5rem; --t-xl: 2.25rem; --t-xxl: 3rem;
+    color-scheme: light; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper: #151715; --ink: #F1F1EE; --body: #D4D4CF; --muted: #9D9D97; --rule: #31352F; --field: #1E211E;
+    --sign: #0E7A52; --link: #66CFA2; --stop: #FF6B6B; --caution: #F2C433; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --paper: #151715; --ink: #F1F1EE; --body: #D4D4CF; --muted: #9D9D97; --rule: #31352F; --field: #1E211E;
+    --sign: #0E7A52; --link: #66CFA2; --stop: #FF6B6B; --caution: #F2C433; color-scheme: dark; }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body { margin: 0; background: var(--paper); color: var(--body); font-family: var(--f); font-size: var(--t-base); line-height: 1.55; font-feature-settings: "tnum" 1; -webkit-text-size-adjust: 100%; }
+  p, h1, h2, h3, ul, ol { margin: 0; }
+  h1, h2, h3 { color: var(--ink); }
+  a, .link-btn { color: var(--link); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+  button, select, input, textarea { font: inherit; }
+  :focus-visible { outline: 3px solid var(--caution); outline-offset: 2px; }
+
+  .page { max-width: 58rem; margin: 0 auto; padding: 1.25rem 1.25rem 4rem; }
+  .top { display: flex; justify-content: flex-end; }
+  .lang { display: flex; gap: 1rem; font-size: var(--t-sm); }
+  .lang button { background: none; border: 0; padding: 0.5rem 0; min-height: 44px; color: var(--muted); cursor: pointer; text-decoration: none; }
+  .lang button[aria-pressed="true"] { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+
+  /* The one bold thing: your street, as a street-name sign */
+  .sign-wrap { margin: 0.75rem 0 0.9rem; }
+  .sign { display: inline-flex; align-items: stretch; max-width: 100%; background: var(--sign); color: var(--sign-ink); border-radius: 0.55rem; padding: 5px; }
+  .sign-inner { display: flex; align-items: stretch; border: 3px solid var(--sign-ink); border-radius: 0.35rem; min-width: 0; }
+  .sign-name { font-weight: 700; font-size: clamp(2.4rem, 9vw, 4.5rem); line-height: 1; letter-spacing: -0.01em; padding: 0.3em 0.45em 0.18em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .sign-num { font-weight: 700; font-size: clamp(1rem, 3vw, 1.5rem); line-height: 1; padding: 0.45em 0.55em; border-left: 3px solid var(--sign-ink); display: flex; align-items: flex-end; }
+  .place { color: var(--muted); font-size: var(--t-base); }
+  .jump { font-size: var(--t-sm); }
+  @media (min-width: 720px) { .jump { display: none; } }
+  .draft { margin-top: 1rem; padding: 0.75rem 1rem; background: var(--field); border-left: 4px solid var(--caution); font-size: var(--t-sm); color: var(--ink); }
+
+  /* Your details: plain fields on a light rule, no boxes */
+  .details { margin-top: 2rem; padding: 1.25rem 0 1.5rem; border-top: 2px solid var(--ink); display: grid; gap: 1rem 1.5rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr)); }
+  .details h2 { grid-column: 1 / -1; font-size: var(--t-md); font-weight: 700; }
+  .field { display: grid; gap: 0.2rem; font-size: var(--t-sm); color: var(--muted); }
+  .field.wide { grid-column: 1 / -1; }
+  .field input, .field select { width: 100%; min-height: 48px; font-size: var(--t-base); color: var(--ink); background: transparent; border: 0; border-bottom: 2px solid var(--rule); border-radius: 0; padding: 0.4rem 1.6rem 0.4rem 0; }
+  .field select { appearance: none; -webkit-appearance: none; cursor: pointer; text-overflow: ellipsis;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236A6A66' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.2rem center; }
+  .field input:focus, .field select:focus { border-bottom-color: var(--sign); outline: none; }
+  .field input::placeholder { color: var(--muted); opacity: 0.8; }
+  .addr-note { grid-column: 1 / -1; font-size: var(--t-sm); color: var(--muted); margin-top: -0.5rem; }
+  .addr-status { color: var(--link); font-weight: 700; }
+  .addr-status.is-warn { color: var(--stop); }
+
+  .ask { border-top: 1px solid var(--rule); padding: 0.9rem 0 1.2rem; }
+  .ask > summary { cursor: pointer; color: var(--link); font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+  .ask-inner { display: grid; gap: 0.75rem; padding-top: 0.5rem; max-width: 40rem; }
+  .ask textarea { width: 100%; min-height: 6.5rem; font-size: var(--t-base); color: var(--ink); background: var(--field); border: 0; border-bottom: 2px solid var(--rule); padding: 0.7rem 0.8rem; resize: vertical; }
+  .ask-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+  .btn { background: var(--sign); color: var(--sign-ink); border: 0; border-radius: 0.3rem; font-weight: 700; padding: 0.65rem 1.1rem; min-height: 48px; cursor: pointer; }
+  .btn:disabled { opacity: 0.6; }
+  .link-btn { background: none; border: 0; padding: 0.3rem 0; min-height: 44px; font-weight: 700; text-decoration: underline; cursor: pointer; justify-self: start; }
+  .ask-status, .privacy { font-size: var(--t-sm); color: var(--muted); }
+  .understood { display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; font-size: var(--t-sm); color: var(--muted); }
+  .chip { color: var(--ink); border-bottom: 2px solid var(--caution); }
+
+  /* The briefing: each item hangs its key figure in the margin */
+  .brief-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem 1rem; border-top: 2px solid var(--ink); padding-top: 1.25rem; margin-top: 0.5rem; }
+  .brief-head h2 { font-size: var(--t-xl); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+  .brief-head h2:focus { outline: none; }
+  .brief-sum { color: var(--muted); font-size: var(--t-sm); }
+  .cards { display: grid; }
+  .item { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0 1.75rem; padding: 1.75rem 0; border-bottom: 1px solid var(--rule); }
+  .fig { display: grid; align-content: start; gap: 0.15rem; }
+  .fig-num { font-size: var(--t-xxl); font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; color: var(--ink); }
+  .fig-unit { font-size: var(--t-sm); font-weight: 600; color: var(--muted); line-height: 1.3; }
+  .item[data-kind="near"] .fig-num, .item[data-kind="biz"] .fig-num { color: var(--ink); }
+  .item-body { display: grid; gap: 0.75rem; max-width: 40rem; min-width: 0; }
+  .answer { font-size: var(--t-lg); font-weight: 700; line-height: 1.22; letter-spacing: -0.01em; }
+  .answer .num { color: inherit; }
+  .sub { color: var(--body); }
+  .todo { padding-left: 1.15rem; display: grid; gap: 0.4rem; }
+  .todo li::marker { color: var(--sign); }
+  details > summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+  .item details { font-size: var(--t-sm); color: var(--muted); }
+  .item details p { margin-top: 0.4rem; }
+  .meta { font-size: var(--t-sm); color: var(--muted); }
+  .feedback { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; font-size: var(--t-sm); color: var(--muted); }
+  .feedback button { background: none; border: 0; padding: 0.3rem 0; min-height: 40px; color: var(--link); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+  .timeline { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 3px solid var(--rule); font-size: var(--t-sm); }
+  .timeline li { padding-top: 0.5rem; position: relative; display: grid; }
+  .timeline li:nth-child(2) { text-align: center; }
+  .timeline li:last-child { text-align: right; }
+  .timeline li.is-now::before { content: ""; position: absolute; top: -3px; left: 0; width: 33%; height: 3px; background: var(--sign); }
+  .tl-dot { display: none; }
+  .timeline strong { color: var(--ink); font-weight: 700; }
+  .timeline small { color: var(--muted); font-size: var(--t-sm); }
+
+  .range { display: grid; gap: 0.35rem; max-width: 30rem; }
+  .range-track { position: relative; height: 0.5rem; background: var(--field); }
+  .range-span { position: absolute; top: 0; bottom: 0; background: var(--sign); opacity: 0.35; }
+  .range-dot { position: absolute; top: 50%; width: 0.9rem; height: 0.9rem; background: var(--sign); transform: translate(-50%, -50%) rotate(45deg); }
+  .range-labels { display: flex; justify-content: space-between; gap: 0.5rem; font-size: var(--t-sm); color: var(--muted); }
+  .compare { display: grid; gap: 0.4rem; max-width: 30rem; }
+  .compare-row { display: grid; grid-template-columns: minmax(5.5rem, 8rem) 1fr auto; align-items: center; gap: 0.75rem; font-size: var(--t-sm); }
+  .compare-bar { height: 0.55rem; background: var(--sign); }
+  .compare-row.is-county .compare-bar { background: var(--muted); opacity: 0.5; }
+  .compare-row span:last-child { font-weight: 700; color: var(--ink); }
+  .items { list-style: none; padding: 0; display: grid; gap: 0.6rem; }
+  .items li { padding-left: 1.1rem; position: relative; color: var(--ink); }
+  .items li::before { content: ""; position: absolute; left: 0; top: 0.5rem; width: 0.55rem; height: 0.55rem; background: var(--muted); }
+  .items li.is-bad::before { background: var(--stop); }
+  .items small { display: block; color: var(--muted); font-size: var(--t-sm); }
+  .verdicts { list-style: none; padding: 0; display: grid; gap: 0.7rem; }
+  .verdicts li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.75rem; }
+  .verdict { font-size: var(--t-sm); font-weight: 700; }
+  .verdict.is-yes { color: var(--stop); }
+  .verdict.is-no { color: var(--link); }
+  .verdicts strong { display: block; color: var(--ink); }
+  .verdicts small { display: block; color: var(--muted); font-size: var(--t-sm); }
+
+  .more-box { padding: 1rem 0; border-bottom: 1px solid var(--rule); }
+  .more-box > summary { color: var(--link); min-height: 44px; display: flex; align-items: center; }
+  #email-card { margin-top: 2.5rem; padding: 1.5rem; background: var(--field); display: grid; gap: 0.6rem; max-width: 40rem; }
+  #email-card h2 { font-size: var(--t-md); font-weight: 700; }
+  .email-preview { border-left: 3px solid var(--sign); padding-left: 1rem; display: grid; gap: 0.4rem; }
+  .email-subject { font-weight: 700; color: var(--ink); }
+  .email-lines { padding-left: 1.1rem; display: grid; gap: 0.3rem; }
+  .tools-row { display: flex; gap: 1.5rem; margin-top: 1.25rem; font-size: var(--t-sm); }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: var(--t-sm); color: var(--muted); display: grid; gap: 0.35rem; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  @media (max-width: 719px) {
+    .page { display: flex; flex-direction: column; }
+    .page > header { order: 0; } .page > main { order: 1; } .details { order: 2; margin-top: 2.5rem; } .ask { order: 3; } .footer { order: 4; }
+    .item { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; padding: 1.4rem 0; }
+    .fig { display: flex; align-items: baseline; gap: 0.5rem; }
+    .fig-num { font-size: var(--t-xl); }
+    .verdicts li { grid-template-columns: 1fr; gap: 0.1rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sign { animation: rise 500ms cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+  @media print { .top, .details, .ask, .tools-row, .feedback, #email-card, .footer { display: none !important; } .item { break-inside: avoid; } }
+
+  .updated { font-size: var(--t-sm); color: var(--muted); }
+  .updated.is-stale { color: var(--stop); font-weight: 700; }
+  .load-error { padding: 1.5rem 0; color: var(--stop); font-weight: 700; }
+
+  /* Alternating bands: dark blue and white, full width */
+  :root { --navy: #0E2236; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --navy: #1C2E42; } }
+  :root[data-theme="dark"] { --navy: #1C2E42; }
+  html, body { overflow-x: clip; }
+  .band-dark, .page > header, .cards > .item:nth-child(odd), #email-card {
+    --ink: #FFFFFF; --body: #DCE4EC; --muted: #A9B8C8; --rule: rgba(255, 255, 255, 0.18); --field: rgba(255, 255, 255, 0.08);
+    --link: #7FD8B0; --stop: #FF8A7A; background: var(--navy); color: var(--body);
+  }
+  .page > header { margin-inline: calc(50% - 50vw); margin-top: -1.25rem; padding: 1rem max(1.25rem, calc(50vw - 27.75rem)) 2.25rem; }
+  .page > header .lang button[aria-pressed="true"] { color: #FFFFFF; }
+  .page > header .draft { color: #FFFFFF; }
+  .details { margin-top: 0; border-top: 0; padding-top: 2rem; }
+  .cards > .item { margin-inline: calc(50% - 50vw); padding-inline: max(1.25rem, calc(50vw - 27.75rem)); border-bottom: 0; }
+  .cards > .item:nth-child(odd) { --sign: #4CC38A; }
+  .brief-head { border-top: 0; padding-bottom: 1rem; }
+  .more-box { border-bottom: 0; }
+  #email-card { --sign: #4CC38A; margin-inline: calc(50% - 50vw); margin-top: 0; max-width: none; padding: 2.5rem max(1.25rem, calc(50vw - 27.75rem)); }
+  #email-card > * { max-width: 40rem; }
+  .tools-row { margin-top: 1.5rem; }
+  @media (max-width: 719px) { .page > header { margin-top: -1.25rem; } .details { margin-top: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="top">
+      <div class="lang" role="group" aria-label="Language / Idioma">
+        <button type="button" data-lang="en" lang="en">English</button>
+        <button type="button" data-lang="es" lang="es">Español</button>
+      </div>
+    </div>
+    <h1 class="sign-wrap"><span class="sign"><span class="sign-inner"><span class="sign-name" id="sign-name"></span><span class="sign-num" id="sign-num" hidden></span></span></span></h1>
+    <p class="place" id="place"></p>
+    <p class="updated" id="updated"></p>
+    <button class="link-btn jump" id="jump-sit" type="button" data-i18n="change_sit"></button>
+    <p class="draft" id="draft" lang="es" hidden>Traducción preliminar: todavía no la ha revisado un hablante nativo. Si algo no se entiende, use “No” abajo para avisarnos.</p>
+  </header>
+
+  <section class="details" id="situation" aria-labelledby="sit-title">
+    <h2 id="sit-title" data-i18n="situation"></h2>
+    <label class="field wide"><span data-i18n="f_address"></span><input id="q-address" type="text" autocomplete="street-address" spellcheck="false"></label>
+    <p class="addr-note"><span class="addr-status" id="addr-status" role="status"></span> <span data-i18n="addr_private"></span></p>
+    <label class="field"><span data-i18n="f_area"></span><select id="q-area"></select></label>
+    <label class="field"><span data-i18n="f_role"></span><select id="q-role"></select></label>
+    <label class="field"><span data-i18n="f_project"></span><select id="q-project"></select></label>
+    <label class="field"><span data-i18n="f_wait"></span><select id="q-wait"></select></label>
+  </section>
+
+  <details class="ask">
+    <summary data-i18n="ask_summary"></summary>
+    <div class="ask-inner">
+      <label id="ask-label" for="ask-text" class="sr-only" data-i18n="ask_label"></label>
+      <textarea id="ask-text" rows="4"></textarea>
+      <div class="ask-row">
+        <button class="btn" id="ask-go" type="button" data-i18n="ask_go"></button>
+        <button class="link-btn" id="ask-clear" type="button" data-i18n="ask_clear" hidden></button>
+      </div>
+      <span class="ask-status" id="ask-status" role="status"></span>
+      <div class="understood" id="understood" hidden></div>
+      <p class="privacy" data-i18n="privacy"></p>
+    </div>
+  </details>
+
+  <main aria-labelledby="brief-title">
+    <div class="brief-head"><h2 id="brief-title" tabindex="-1" data-i18n="week_title"></h2><span class="brief-sum" id="brief-sum"></span></div>
+    <div class="cards" id="cards"></div>
+    <details class="more-box" id="more-box" hidden><summary id="more-sum"></summary><div class="cards" id="more-cards"></div></details>
+    <section id="email-card" aria-live="polite"></section>
+    <div class="tools-row"><button class="link-btn" id="print" type="button" data-i18n="print"></button><button class="link-btn" id="reset" type="button" data-i18n="reset"></button></div>
+  </main>
+  <p class="sr-only" id="live" role="status" aria-live="polite"></p>
+
+  <footer class="footer">
+    <div data-i18n="saved_note"></div>
+    <div><span data-i18n="go_deeper"></span> <a href="permit-clock.html">Permit Clock</a>, <a href="fairness-check.html">Fairness Check</a>, <a href="alerts.html">Neighborhood Alerts</a>.</div>
+    <div data-i18n="pro_line"></div>
+  </footer>
+</div>
+<script>
+  // Load today's data, then start the page. The nightly job replaces data/mymoco_data.json.
+  fetch('data/mymoco_data.json', { cache: 'no-store' })
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((d) => { window.DATA = d; const s = document.createElement('script'); s.src = 'app.js'; document.body.appendChild(s); })
+    .catch(() => { document.getElementById('cards').innerHTML = '<p class="load-error">Today’s data didn’t load. Refresh the page, or try again in a few minutes.</p>'; });
+</script>
+</body>
+</html>

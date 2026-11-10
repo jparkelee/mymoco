@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fairness Check · My MoCo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/d3.min.js"></script>
+<script>window.DASH_CONFIG = { datasets: { requests: 'data/requests_311_clean.csv' }, params: { category: 'Pothole', area: '' } };</script>
+<script src="assets/dash-shim.js"></script>
+</head>
+<body>
+<nav class="site-nav" aria-label="My MoCo tools"><a href="index.html">My MoCo</a><a href="alerts.html">Neighborhood Alerts</a><a href="permit-clock.html">Permit Clock</a><a href="fairness-check.html" aria-current="page">Fairness Check</a></nav>
+<p class="site-updated" id="site-updated"></p>
+<div id="dash-root">
+<style>
+  .fc { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: grid; gap: var(--cds-gap-lg); max-width: 72rem; margin-inline: auto; }
+  .fc p, .fc h1, .fc h2 { margin: 0; }
+  .fc-head { display: grid; gap: var(--cds-gap-sm); }
+  .fc-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.15; }
+  .fc-lede { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); max-width: 64ch; }
+  .fc-sample { display: flex; align-items: center; gap: var(--cds-gap-sm); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .fc-sample-dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-warn); }
+  .fc-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--cds-gap-md); }
+  .fc-field { display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .fc-field select, .fc-reset { font: inherit; font-size: var(--cds-font-size-body); color: var(--color-fg); background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); }
+  .fc-field select { min-width: min(100%, 15rem); }
+  .fc-reset { cursor: pointer; }
+  .fc-field select:focus-visible, .fc-reset:focus-visible, .fc-sort:focus-visible, .fc-table tbody tr:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+  .fc-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); align-content: start; min-width: 0; }
+  .fc-h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .fc-note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); max-width: 72ch; }
+  .fc-hero { gap: var(--cds-gap-md); }
+  .fc-hero-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--cds-gap-sm); font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-title); line-height: 1.15; }
+  .fc .fc-hero-line b { font-weight: 400; font-size: calc(var(--cds-font-size-title) * 2.6); line-height: 1; font-variant-numeric: tabular-nums; }
+  .fc-hero-text { font-size: var(--cds-font-size-body); color: var(--color-fg-muted); max-width: 72ch; }
+  .fc .fc-hero-text b { font-weight: var(--cds-font-weight-medium); color: var(--color-fg); }
+  .fc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--cds-gap-md); }
+  .fc-tile { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+  .fc-tile-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .fc-tile-value { display: flex; align-items: baseline; gap: var(--cds-gap-xs); font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-title); line-height: 1.1; }
+  .fc .fc-tile-value b { font-weight: 400; font-variant-numeric: tabular-nums; }
+  .fc-unit { font-family: var(--font-anthropic-sans); font-size: var(--cds-font-size-body); color: var(--color-fg-muted); }
+  .fc-tile-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .fc-chart { position: relative; min-height: 240px; }
+  .fc-chart svg { display: block; }
+  .fc-tip { position: absolute; top: 0; left: 0; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); line-height: 1.4; white-space: nowrap; z-index: 2; }
+  .fc-tip-head { color: var(--cds-text-secondary); }
+  .fc-tick { fill: var(--color-fg-muted); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .fc-label { fill: var(--color-fg); font-size: var(--cds-font-size-caption); font-family: var(--font-anthropic-sans); }
+  .fc-label-strong { fill: var(--color-fg); font-size: var(--cds-font-size-caption); font-weight: var(--cds-font-weight-medium); font-family: var(--font-anthropic-sans); }
+  .fc-table-wrap { max-height: 28rem; overflow: auto; }
+  .fc-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+  .fc-table th { position: sticky; top: 0; background: var(--color-panel); text-align: right; vertical-align: bottom; font-weight: var(--cds-font-weight-medium); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); }
+  .fc-table td { text-align: right; padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); }
+  .fc-table th:first-child, .fc-table td:first-child { text-align: left; }
+  .fc-table tbody tr { cursor: pointer; }
+  .fc-table tbody tr:hover td { background: var(--color-bg); }
+  .fc .fc-table tr.is-picked td { font-weight: var(--cds-font-weight-medium); }
+  .fc .fc-table td.is-over { color: var(--color-bad); }
+  .fc-sort { all: unset; cursor: pointer; }
+  .fc-method ul { margin: 0; padding-left: 1.1rem; display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-body); color: var(--color-fg-muted); max-width: 75ch; }
+  .fc [data-dash-source-state=empty] { color: transparent; }
+  .fc [data-dash-source-state=refreshing] { opacity: 0.5; transition: opacity var(--cds-dur-slow); }
+  .fc-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .fc-fail-dot { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--color-bad); }
+  @media (max-width: 36rem) { .fc .fc-narrow-hide { display: none; } }
+</style>
+
+<div class="fc">
+  <header class="fc-head" id="top">
+    <h1 class="fc-title">Fairness Check</h1>
+    <p class="fc-lede">Does the county fix reported problems as fast in every part of Montgomery County? Days from a 311 request to its close, compared area by area for one kind of request at a time.</p>
+    <p data-sample-note class="fc-sample"><span class="fc-sample-dot"></span>Prototype: every number here comes from made-up sample requests, and the gaps between areas are random, not real county findings.</p>
+  </header>
+
+  <div class="fc-filters" id="filters">
+    <label class="fc-field">Request type
+      <select data-draw="category-select" data-source="fair_gap" aria-label="Request type"></select>
+    </label>
+    <button class="fc-reset" type="button">Clear area choice</button>
+  </div>
+
+  <section class="fc-card fc-hero" id="gap">
+    <h2 class="fc-h2">The gap between the fastest and slowest areas</h2>
+    <p class="fc-hero-line"><b class="dash-skeleton" data-draw="hero-gap" data-source="fair_gap" data-field="gap_times">—</b><span>times as long in the slowest area as in the fastest</span></p>
+    <p class="fc-hero-text">For <span data-draw="pick-category">—</span> requests closed in the last 12 months, the typical wait was <b data-draw="hero-slow-days" data-source="fair_gap" data-field="slowest_days">—</b> days in <b data-draw="hero-slow-area" data-source="fair_gap" data-field="slowest_area">—</b> and <b data-draw="hero-fast-days" data-source="fair_gap" data-field="fastest_days">—</b> in <b data-draw="hero-fast-area" data-source="fair_gap" data-field="fastest_area">—</b>, against <b data-draw="hero-county-days" data-source="fair_gap" data-field="county_days">—</b> countywide.</p>
+  </section>
+
+  <section class="fc-tiles" id="headline">
+    <div class="fc-tile" id="tile-typical">
+      <p class="fc-tile-label">Typical days to close, countywide</p>
+      <p class="fc-tile-value"><b class="dash-skeleton" data-draw="kpi-typical" data-source="fair_stats" data-field="typical_days">—</b><span class="fc-unit">days</span></p>
+      <p class="fc-tile-note">The middle request when all are lined up. Last 12 months.</p>
+    </div>
+    <div class="fc-tile" id="tile-target">
+      <p class="fc-tile-label">Closed within the target time</p>
+      <p class="fc-tile-value"><b class="dash-skeleton" data-draw="kpi-target" data-source="fair_stats" data-field="within_target">—</b></p>
+      <p class="fc-tile-note">Targets here are sample values for each request type.</p>
+    </div>
+    <div class="fc-tile" id="tile-closed">
+      <p class="fc-tile-label">Requests closed</p>
+      <p class="fc-tile-value"><b class="dash-skeleton" data-draw="kpi-closed" data-source="fair_stats" data-field="closed_12m">—</b></p>
+      <p class="fc-tile-note">Last 12 months, all areas.</p>
+    </div>
+    <div class="fc-tile" id="tile-late">
+      <p class="fc-tile-label">Still open past the target</p>
+      <p class="fc-tile-value"><b class="dash-skeleton" data-draw="kpi-late" data-source="fair_stats" data-field="open_past_target">—</b></p>
+      <p class="fc-tile-note">Open requests already older than their target time.</p>
+    </div>
+  </section>
+
+  <section class="fc-card" id="by-area-chart">
+    <h2 class="fc-h2">Typical wait in each area</h2>
+    <p class="fc-note">Dot: typical days. Bar: the middle half of requests. Dashed line: the county typical. Red dots take more than <span data-draw="limit-x">—</span> times the county typical. Select an area to follow it below.</p>
+    <div class="fc-chart dash-skeleton" data-draw="strip-chart" data-source="fair_stats" id="strip-chart"></div>
+  </section>
+
+  <section class="fc-card" id="trend">
+    <h2 class="fc-h2">Is the gap closing?</h2>
+    <p class="fc-note">Typical days to close by quarter, <span data-draw="pick-trend-area">—</span> against the county.</p>
+    <div class="fc-chart dash-skeleton" data-draw="trend-chart" data-source="fair_trend" id="trend-chart"></div>
+  </section>
+
+  <section class="fc-card" id="by-area">
+    <h2 class="fc-h2">By area</h2>
+    <p class="fc-note">Areas with fewer than <span data-draw="min-n">—</span> closed requests in a year are left out of the fastest and slowest comparison. Select a row to follow that area.</p>
+    <div class="fc-table-wrap">
+      <table class="fc-table" data-source="fair_stats" data-row-key="category,area">
+        <thead>
+          <tr>
+            <th data-field="area" aria-sort="none"><button class="fc-sort" type="button" data-sort="area">Area</button></th>
+            <th data-field="closed_12m" aria-sort="none"><button class="fc-sort" type="button" data-sort="closed_12m">Closed</button></th>
+            <th data-field="typical_days" aria-sort="descending"><button class="fc-sort" type="button" data-sort="typical_days">Typical days</button></th>
+            <th data-field="times_county" aria-sort="none"><button class="fc-sort" type="button" data-sort="times_county">Times the county</button></th>
+            <th class="fc-narrow-hide" data-field="within_target" aria-sort="none"><button class="fc-sort" type="button" data-sort="within_target">Within target</button></th>
+            <th class="fc-narrow-hide" data-field="open_past_target" aria-sort="none"><button class="fc-sort" type="button" data-sort="open_past_target">Open past target</button></th>
+          </tr>
+        </thead>
+        <tbody data-draw="area-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="fc-card fc-method" id="method">
+    <h2 class="fc-h2">How the check works</h2>
+    <ul>
+      <li>Wait is the day a request was closed minus the day it was opened, in calendar days.</li>
+      <li>Areas are compared within one request type at a time. An area with many sidewalk repairs would look slow next to one with mostly missed-trash calls, even if both are served equally well.</li>
+      <li>Typical is the median: the middle request when every wait is lined up, so one request left open for months barely moves it.</li>
+      <li>A gap is a question, not a verdict. Weather, the kind of street, a contractor’s schedule or how fully a request was described can all slow one area down.</li>
+      <li>Real numbers would come from the MC311 Service Requests dataset on dataMontgomery. This prototype uses made-up requests in a similar shape.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const LIMIT = 1.5; // an area past this many times the county typical is flagged
+const MIN_AREA = 30; // the same minimum the fair_gap calc uses
+const fmtCount = d3.format(',');
+const fmtShare = d3.format('.0%');
+const fmtTimes = d3.format('.1f');
+const whereValue = (s) => String(s).replace(/%/g, '%25').replace(/&/g, '%26').replace(/=/g, '%3D');
+
+dash.calc('fair_stats', {
+  inputs: ['requests'],
+  title: 'Close times by type and area',
+  description: 'For each request type and area (and All): requests closed in the last 12 months, typical and spread of days to close, share within target, open requests past target, and times the county typical.',
+  fn: (requests) => {
+    const DAY = 864e5, MIN = 5;
+    const pct = (xs, p) => {
+      if (xs.length < MIN) return null;
+      const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) * p, lo = Math.floor(i);
+      return Math.round(s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (i - lo));
+    };
+    const asOf = requests.reduce((m, r) => Math.max(m, Date.parse(r.closed_date || r.opened_date)), 0);
+    const groups = new Map();
+    for (const r of requests) {
+      const target = Number(r.target_days);
+      for (const area of [r.area, 'All']) {
+        const key = r.category + '|' + area;
+        if (!groups.has(key)) groups.set(key, { category: r.category, area, days: [], onTime: 0, open: 0, late: 0 });
+        const g = groups.get(key);
+        if (!r.closed_date) {
+          g.open += 1;
+          if ((asOf - Date.parse(r.opened_date)) / DAY > target) g.late += 1;
+        } else if (Date.parse(r.closed_date) > asOf - 365 * DAY) {
+          const d = Number(r.days_to_close);
+          g.days.push(d);
+          if (d <= target) g.onTime += 1;
+        }
+      }
+    }
+    const rows = [...groups.values()].map((g) => ({
+      category: g.category, area: g.area, closed_12m: g.days.length,
+      typical_days: pct(g.days, 0.5), p25_days: pct(g.days, 0.25), p75_days: pct(g.days, 0.75), p90_days: pct(g.days, 0.9),
+      within_target: g.days.length ? Math.round(100 * g.onTime / g.days.length) / 100 : null,
+      open_now: g.open, open_past_target: g.late,
+    }));
+    const county = new Map(rows.filter((r) => r.area === 'All').map((r) => [r.category, r.typical_days]));
+    return rows.map((r) => ({ ...r, times_county: r.typical_days === null || !county.get(r.category) ? null : Math.round(10 * r.typical_days / county.get(r.category)) / 10 }));
+  },
+});
+
+dash.calc('fair_gap', {
+  inputs: ['fair_stats'],
+  title: 'Fastest and slowest areas',
+  description: 'For each request type: the fastest and slowest areas by typical days (areas with at least 30 closed requests), the county typical, and how many times longer the slowest takes.',
+  fn: (fair_stats) => {
+    const MIN = 30;
+    const byType = new Map();
+    for (const r of fair_stats) {
+      if (!byType.has(r.category)) byType.set(r.category, []);
+      byType.get(r.category).push(r);
+    }
+    return [...byType.entries()].map(([category, rows]) => {
+      const county = rows.find((r) => r.area === 'All');
+      const areas = rows.filter((r) => r.area !== 'All' && r.closed_12m >= MIN && r.typical_days !== null)
+        .sort((a, b) => a.typical_days - b.typical_days || a.area.localeCompare(b.area));
+      const fast = areas[0], slow = areas[areas.length - 1];
+      return {
+        category, county_days: county ? county.typical_days : null,
+        fastest_area: fast ? fast.area : null, fastest_days: fast ? fast.typical_days : null,
+        slowest_area: slow ? slow.area : null, slowest_days: slow ? slow.typical_days : null,
+        gap_times: fast && slow && fast.typical_days > 0 ? Math.round(10 * slow.typical_days / fast.typical_days) / 10 : null,
+        areas_compared: areas.length,
+      };
+    });
+  },
+});
+
+dash.calc('fair_trend', {
+  inputs: ['requests'],
+  title: 'Close times by quarter',
+  description: 'For each request type and area (and All): typical days to close for requests closed in each quarter from 2025; quarters with fewer than 5 requests left out.',
+  fn: (requests) => {
+    const FIRST = '2025-01', MIN = 5;
+    const quarter = (d) => d.slice(0, 4) + '-Q' + (Math.floor((Number(d.slice(5, 7)) - 1) / 3) + 1);
+    const groups = new Map();
+    for (const r of requests) {
+      if (!r.closed_date || r.closed_date.slice(0, 7) < FIRST) continue;
+      const q = quarter(r.closed_date);
+      for (const area of [r.area, 'All']) {
+        const key = r.category + '|' + area + '|' + q;
+        if (!groups.has(key)) groups.set(key, { category: r.category, area, quarter: q, days: [] });
+        groups.get(key).days.push(Number(r.days_to_close));
+      }
+    }
+    return [...groups.values()].filter((g) => g.days.length >= MIN).map((g) => {
+      const s = g.days.sort((a, b) => a - b), i = (s.length - 1) * 0.5, lo = Math.floor(i);
+      return { category: g.category, area: g.area, quarter: g.quarter, requests: s.length,
+        typical_days: Math.round(s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (i - lo)) };
+    });
+  },
+});
+
+const picked = () => {
+  const p = dash.params();
+  return { category: p.category || 'Pothole', area: p.area || '' };
+};
+const okRows = (id) => {
+  const s = dash.data(id);
+  return s.status === 'ok' ? s.data : [];
+};
+const gapRow = () => okRows('fair_gap').find((r) => r.category === picked().category) || null;
+const statRow = (area) => okRows('fair_stats').find((r) => r.category === picked().category && r.area === area) || null;
+const followArea = () => picked().area || (gapRow() ? gapRow().slowest_area : '') || '';
+
+const ready = (el, ids, isChart) => {
+  const states = ids.map((id) => dash.data(id).status);
+  const ok = states.every((s) => s === 'ok');
+  const failed = states.includes('error');
+  el.classList.toggle('dash-skeleton', !ok && !failed);
+  if (ok) return true;
+  if (failed && isChart) {
+    const box = document.createElement('div');
+    box.className = 'fc-fail';
+    const dot = document.createElement('span');
+    dot.className = 'fc-fail-dot';
+    box.append(dot, 'Failed to load');
+    el.replaceChildren(box);
+  } else if (isChart) {
+    el.replaceChildren();
+  } else {
+    el.textContent = '—';
+  }
+  return false;
+};
+const measure = (svg, text, cls) => {
+  const t = svg.append('text').attr('class', cls).text(text);
+  const w = t.node().getComputedTextLength();
+  t.remove();
+  return w;
+};
+const makeTip = (box) => {
+  const tip = document.createElement('div');
+  tip.className = 'fc-tip';
+  tip.hidden = true;
+  box.append(tip);
+  return {
+    show(lines, x, y) {
+      tip.replaceChildren(...lines.map((line, i) => {
+        const row = document.createElement('div');
+        if (i === 0) row.className = 'fc-tip-head';
+        row.textContent = line;
+        return row;
+      }));
+      tip.hidden = false;
+      const left = Math.max(0, Math.min(box.clientWidth - tip.offsetWidth, x + 12));
+      const top = Math.max(0, y - tip.offsetHeight - 10);
+      tip.style.transform = `translate(${left}px, ${top}px)`;
+    },
+    hide() { tip.hidden = true; },
+  };
+};
+
+const drawGap = (name, field, format) => dash.draw(name, (el) => {
+  el.dataset.where = `category=${whereValue(picked().category)}`;
+  if (!ready(el, ['fair_gap'], false)) return;
+  const row = gapRow();
+  const v = row ? row[field] : null;
+  el.textContent = v === null || v === undefined ? '—' : format(v);
+});
+drawGap('hero-gap', 'gap_times', fmtTimes);
+drawGap('hero-slow-days', 'slowest_days', fmtCount);
+drawGap('hero-slow-area', 'slowest_area', String);
+drawGap('hero-fast-days', 'fastest_days', fmtCount);
+drawGap('hero-fast-area', 'fastest_area', String);
+drawGap('hero-county-days', 'county_days', fmtCount);
+
+const drawCounty = (name, field, format) => dash.draw(name, (el) => {
+  el.dataset.where = `category=${whereValue(picked().category)}&area=All`;
+  if (!ready(el, ['fair_stats'], false)) return;
+  const row = statRow('All');
+  const v = row ? row[field] : null;
+  el.textContent = v === null || v === undefined ? '—' : format(v);
+});
+drawCounty('kpi-typical', 'typical_days', fmtCount);
+drawCounty('kpi-target', 'within_target', fmtShare);
+drawCounty('kpi-closed', 'closed_12m', fmtCount);
+drawCounty('kpi-late', 'open_past_target', fmtCount);
+
+dash.draw('pick-category', (el) => { el.textContent = picked().category.toLowerCase(); });
+dash.draw('pick-trend-area', (el) => {
+  const area = followArea();
+  el.textContent = area ? (picked().area ? area : `${area}, the slowest area,`) : 'the selected area';
+});
+dash.draw('limit-x', (el) => { el.textContent = fmtTimes(LIMIT); });
+dash.draw('min-n', (el) => { el.textContent = fmtCount(MIN_AREA); });
+
+dash.draw('category-select', (sel) => {
+  const names = okRows('fair_gap').map((r) => r.category).sort((a, b) => a.localeCompare(b));
+  sel.replaceChildren(...names.map((n) => new Option(n, n)));
+  sel.value = picked().category;
+  sel.onchange = () => dash.setParams({ category: sel.value, area: '' });
+});
+
+// Each area as a dot on one shared scale of days: the spread between dots is the finding.
+dash.draw('strip-chart', (el) => {
+  if (!ready(el, ['fair_stats'], true)) return;
+  el.replaceChildren();
+  const county = statRow('All');
+  const rows = okRows('fair_stats')
+    .filter((r) => r.category === picked().category && r.area !== 'All' && r.typical_days !== null)
+    .sort((a, b) => b.typical_days - a.typical_days || a.area.localeCompare(b.area));
+  if (!rows.length || !county || county.typical_days === null) return;
+  const follow = followArea();
+  const width = Math.max(el.clientWidth, 260), rowH = 26, top = 28;
+  const height = top + rows.length * rowH + 8;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('role', 'img').attr('aria-label', 'Typical days to close in each area, against the county typical');
+  const days = (v) => `${fmtCount(v)} days`;
+  const labelW = d3.max(rows, (r) => measure(svg, r.area, 'fc-label-strong'));
+  const valueW = d3.max(rows, (r) => measure(svg, days(r.typical_days), 'fc-label')) + 12;
+  const max = d3.max(rows, (r) => r.p75_days ?? r.typical_days) * 1.05;
+  const x = d3.scaleLinear([0, max], [labelW + 14, width - valueW]);
+  const countyText = `County ${days(county.typical_days)}`;
+  const cw = measure(svg, countyText, 'fc-label');
+  svg.append('line').attr('x1', x(county.typical_days)).attr('x2', x(county.typical_days)).attr('y1', top - 6).attr('y2', height - 4)
+    .attr('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 4');
+  svg.append('text').attr('class', 'fc-label').attr('y', 14)
+    .attr('x', Math.max(0, Math.min(width - cw, x(county.typical_days) - cw / 2))).text(countyText);
+  const tip = makeTip(el);
+  const g = svg.selectAll('g.fc-row').data(rows).join('g').attr('class', 'fc-row')
+    .attr('transform', (r, i) => `translate(0, ${top + i * rowH})`).style('cursor', 'pointer')
+    .attr('tabindex', 0).attr('role', 'button').attr('aria-label', (r) => `${r.area}: typical ${r.typical_days} days`);
+  g.append('rect').attr('x', 0).attr('y', 0).attr('width', width).attr('height', rowH).attr('fill', 'transparent');
+  g.append('text').attr('class', (r) => (r.area === follow ? 'fc-label-strong' : 'fc-label')).attr('x', labelW).attr('y', rowH / 2)
+    .attr('dy', '0.32em').attr('text-anchor', 'end').text((r) => r.area);
+  g.filter((r) => r.p25_days !== null && r.p75_days !== null).append('line')
+    .attr('x1', (r) => x(r.p25_days)).attr('x2', (r) => x(r.p75_days)).attr('y1', rowH / 2).attr('y2', rowH / 2)
+    .attr('stroke', 'var(--cds-chart-muted)').attr('stroke-width', 4).attr('stroke-linecap', 'round');
+  g.append('circle').attr('cx', (r) => x(r.typical_days)).attr('cy', rowH / 2).attr('r', (r) => (r.area === follow ? 7 : 5))
+    .attr('fill', (r) => (r.times_county !== null && r.times_county > LIMIT ? 'var(--cds-chart-status-critical)' : dash.colors[0]))
+    .attr('stroke', (r) => (r.area === follow ? 'var(--color-fg)' : 'none')).attr('stroke-width', 2);
+  g.append('text').attr('class', 'fc-label').attr('y', rowH / 2).attr('dy', '0.32em')
+    .attr('x', (r) => x(Math.max(r.typical_days, r.p75_days ?? 0)) + 10).text((r) => days(r.typical_days));
+  const choose = (r) => dash.setParams({ area: picked().area === r.area ? '' : r.area });
+  g.on('click', (event, r) => choose(r))
+    .on('keydown', (event, r) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(r); } })
+    .on('pointermove', (event, r) => {
+      const [px, py] = d3.pointer(event, el);
+      tip.show([r.area, `Typical: ${days(r.typical_days)}`, r.times_county === null ? 'No county comparison' : `${fmtTimes(r.times_county)} times the county typical`, `${fmtCount(r.closed_12m)} closed in 12 months`], px, py);
+    })
+    .on('pointerleave', () => tip.hide());
+});
+
+dash.draw('trend-chart', (el) => {
+  if (!ready(el, ['fair_trend'], true)) return;
+  el.replaceChildren();
+  const { category } = picked();
+  const area = followArea();
+  const all = okRows('fair_trend').filter((r) => r.category === category);
+  const series = [
+    { name: 'County', color: 'var(--cds-chart-muted)', rows: all.filter((r) => r.area === 'All') },
+    { name: area, color: dash.colors[0], rows: all.filter((r) => r.area === area) },
+  ].map((s) => ({ ...s, rows: s.rows.sort((a, b) => a.quarter.localeCompare(b.quarter)) })).filter((s) => s.rows.length);
+  if (!series.length) return;
+  const quarters = [...new Set(series.flatMap((s) => s.rows.map((r) => r.quarter)))].sort();
+  const qLabel = (q) => `${q.slice(5)} ${q.slice(0, 4)}`;
+  const width = Math.max(el.clientWidth, 260), height = 240;
+  const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('role', 'img').attr('aria-label', 'Typical days to close by quarter for the selected area and the county');
+  const y = d3.scaleLinear([0, d3.max(series, (s) => d3.max(s.rows, (r) => r.typical_days)) * 1.15], [height - 30, 14]).nice();
+  const yTicks = y.ticks(4);
+  const tickW = d3.max(yTicks, (t) => measure(svg, fmtCount(t), 'fc-tick'));
+  const ends = series.map((s) => ({ s, last: s.rows[s.rows.length - 1], text: `${s.name} ${fmtCount(s.rows[s.rows.length - 1].typical_days)}` }));
+  const endW = d3.max(ends, (e) => measure(svg, e.text, 'fc-label-strong'));
+  const m = { top: 14, right: endW + 16, bottom: 30, left: tickW + 10 };
+  const x = d3.scalePoint(quarters, [m.left, width - m.right]).padding(0.2);
+  y.range([height - m.bottom, m.top]);
+  const grid = svg.append('g');
+  grid.selectAll('line').data(yTicks).join('line').attr('x1', m.left).attr('x2', width - m.right)
+    .attr('y1', (t) => y(t)).attr('y2', (t) => y(t)).attr('stroke', 'var(--cds-chart-grid)');
+  grid.selectAll('text').data(yTicks).join('text').attr('class', 'fc-tick').attr('x', m.left - 8).attr('y', (t) => y(t))
+    .attr('dy', '0.32em').attr('text-anchor', 'end').text((t) => fmtCount(t));
+  const labelW = d3.max(quarters, (q) => measure(svg, qLabel(q), 'fc-tick'));
+  let shown = quarters;
+  while (shown.length > 2 && x(shown[1]) - x(shown[0]) < labelW + 10) shown = shown.filter((_, i) => i % 2 === 0);
+  svg.append('g').selectAll('text').data(shown).join('text').attr('class', 'fc-tick').attr('x', (q) => x(q))
+    .attr('y', height - 8).attr('text-anchor', 'middle').text(qLabel);
+  for (const s of series) {
+    svg.append('path').attr('fill', 'none').attr('stroke', s.color).attr('stroke-width', 2)
+      .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+      .attr('d', d3.line().x((r) => x(r.quarter)).y((r) => y(r.typical_days))(s.rows));
+    svg.append('g').selectAll('circle').data(s.rows).join('circle').attr('cx', (r) => x(r.quarter)).attr('cy', (r) => y(r.typical_days))
+      .attr('r', 3).attr('fill', s.color);
+  }
+  const placed = ends.map((e) => ({ ...e, y: y(e.last.typical_days) })).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < placed.length; i += 1) if (placed[i].y - placed[i - 1].y < 16) placed[i].y = placed[i - 1].y + 16;
+  for (const e of placed) {
+    svg.append('text').attr('class', 'fc-label-strong').attr('x', x(e.last.quarter) + 8).attr('y', e.y).attr('dy', '0.32em')
+      .style('fill', e.s.name === 'County' ? 'var(--color-fg-muted)' : 'var(--color-fg)').text(e.text);
+  }
+  const tip = makeTip(el);
+  svg.append('g').selectAll('rect').data(quarters).join('rect')
+    .attr('x', (q) => x(q) - x.step() / 2).attr('width', x.step()).attr('y', m.top).attr('height', height - m.top - m.bottom)
+    .attr('fill', 'transparent')
+    .on('pointermove', (event, q) => {
+      const [px, py] = d3.pointer(event, el);
+      const lines = series.map((s) => { const r = s.rows.find((d) => d.quarter === q); return `${s.name}: ${r ? `${fmtCount(r.typical_days)} days` : 'too few requests'}`; });
+      tip.show([qLabel(q), ...lines], px, py);
+    })
+    .on('pointerleave', () => tip.hide());
+});
+
+let sortKey = 'typical_days';
+let sortDir = -1;
+dash.draw('area-rows', (tbody) => {
+  const s = dash.data('fair_stats');
+  if (s.status !== 'ok') { tbody.replaceChildren(); return; }
+  const { category } = picked();
+  const follow = followArea();
+  const rows = s.data.filter((r) => r.category === category && r.area !== 'All' && r.closed_12m > 0);
+  rows.sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return (typeof av === 'string' ? av.localeCompare(bv) : av - bv) * sortDir;
+  });
+  const show = (v, f) => (v === null || v === undefined ? '—' : f(v));
+  tbody.replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr');
+    tr.dataset.key = `${encodeURIComponent(r.category)},${encodeURIComponent(r.area)}`;
+    tr.tabIndex = 0;
+    if (r.area === follow) tr.className = 'is-picked';
+    const cells = [
+      [r.area, ''], [fmtCount(r.closed_12m), ''], [show(r.typical_days, fmtCount), ''],
+      [show(r.times_county, fmtTimes), r.times_county !== null && r.times_county > LIMIT ? 'is-over' : ''],
+      [show(r.within_target, fmtShare), 'fc-narrow-hide'], [fmtCount(r.open_past_target), 'fc-narrow-hide'],
+    ];
+    for (const [text, cls] of cells) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      if (cls) td.className = cls;
+      tr.append(td);
+    }
+    return tr;
+  }));
+});
+
+document.querySelectorAll('.fc-sort').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.sort;
+    sortDir = key === sortKey ? -sortDir : key === 'area' ? 1 : -1;
+    sortKey = key;
+    document.querySelectorAll('.fc-sort').forEach((b) => {
+      const th = b.closest('th');
+      if (th) th.setAttribute('aria-sort', b.dataset.sort === sortKey ? (sortDir === 1 ? 'ascending' : 'descending') : 'none');
+    });
+    dash.draw('area-rows');
+  });
+});
+const pickArea = (tr) => {
+  const area = decodeURIComponent(tr.dataset.key.split(',')[1]);
+  dash.setParams({ area: picked().area === area ? '' : area });
+};
+document.querySelectorAll('.fc-table').forEach((table) => {
+  table.addEventListener('click', (event) => { const tr = event.target.closest('tbody tr[data-key]'); if (tr) pickArea(tr); });
+  table.addEventListener('keydown', (event) => {
+    const tr = event.target.closest('tbody tr[data-key]');
+    if (tr && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); pickArea(tr); }
+  });
+});
+document.querySelectorAll('.fc-reset').forEach((btn) => btn.addEventListener('click', () => dash.setParams({ area: '' })));
+</script>
+
+</div>
+<script>dash.start();</script>
+</body>
+</html>
