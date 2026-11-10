@@ -241,7 +241,7 @@
 </div>
 <script>
   // Load today's data, then start the page. The nightly job replaces data/mymoco_data.json.
-  fetch('data/mymoco_data.json', { cache: 'no-store' })
+  fetch('mymoco_data.json', { cache: 'no-store' })
     .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then((d) => { window.DATA = d; const s = document.createElement('script'); s.src = 'app.js'; document.body.appendChild(s); })
     .catch(() => { document.getElementById('cards').innerHTML = '<p class="load-error">Today’s data didn’t load. Refresh the page, or try again in a few minutes.</p>'; });

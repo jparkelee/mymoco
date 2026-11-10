@@ -54,7 +54,7 @@
           .catch(() => { store[id] = { status: 'error', data: [] }; })
           .then(redraw);
       });
-      fetch('data/meta.json', { cache: 'no-store' }).then((r) => r.json()).then((m) => {
+      fetch('meta.json', { cache: 'no-store' }).then((r) => r.json()).then((m) => {
         if (m.kind !== 'county' || !m.updated) return;
         document.querySelectorAll('[data-sample-note]').forEach((n) => { n.hidden = true; });
         const when = new Date(m.updated);
